@@ -20,3 +20,4 @@ Even though OWM does provide Weather Alerts, this driver pulls that in from the 
 CAUTION - This has NOT been tested.  There have been no alerts for my area and I cannot verify the actual structure of the JSON return data when there is an alert.
 
 Please report any bugs/issue in the Hubitat Community here:
+https://community.hubitat.com/t/openweathermap-nws-alerts-weather-driver/38249
