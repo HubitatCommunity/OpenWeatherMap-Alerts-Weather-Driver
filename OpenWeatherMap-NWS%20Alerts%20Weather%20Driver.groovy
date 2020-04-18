@@ -48,7 +48,7 @@
 
 
    V0.0.1   Initial conversion from Dark Sky to OWM                                           - 04/17/2020
-
+   V0.0.2   Fixed Alerts on myTile and alertTile, Capitalized condition_text                  - 04/17/2020
 
 
 
@@ -82,7 +82,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "0.0.1"  }
+public static String version()      {  return "0.0.2"  }
 import groovy.transform.Field
 
 metadata {
@@ -241,8 +241,8 @@ void pollOWM() {
 void pollOWMHandler(resp, data) {
     LOGINFO("OpenWeatherMap.org Weather Driver - INFO: Polling OpenWeatherMap.org")
     if(resp.getStatus() != 200 && resp.getStatus() != 207) {        
-        LOGWARN("Calling https://api.openweathermap.org/data/2.5/onecall?lat=" + altLat + "&lon=" + altLon + "&mode=json&units=imperial&appid=" + apiKey)
-        LOGWARN(resp.getStatus() + ":" + resp.getErrorMessage())
+        log.warn "Calling https://api.openweathermap.org/data/2.5/onecall?lat=" + altLat + "&lon=" + altLon + "&mode=json&units=imperial&appid=" + apiKey
+        log.warn resp.getStatus() + ":" + resp.getErrorMessage()
 	} else {
         def owm = parseJson(resp.data)
 //        LOGINFO("OpenWeatherMap Data: " + owm)
@@ -424,7 +424,7 @@ void pollOWMHandler(resp, data) {
         updateDataValue("Precip2", (Math.round(((rainFormat != "Inches" ? t_p2 : t_p2 * 0.03937008) * getDataValue("mult_r").toBigDecimal())) / getDataValue("mult_r").toBigDecimal()).toString())
 
         updateDataValue("condition_code", owm.current.weather[0].id.toString())
-        updateDataValue("condition_text", owm.current.weather[0].description)    
+        updateDataValue("condition_text", owm.current.weather[0].description.capitalize())    
 
         updateDataValue("forecast_code", owm.daily[0].weather[0].id.toString())
         updateDataValue("forecast_text", owm.daily[0].weather[0].description)
@@ -492,23 +492,23 @@ void pollOWMHandler(resp, data) {
 // <<<<<<<<<< Begin NWS Active Alert Poll Routines >>>>>>>>>>
 void pollAlerts() {
     def ParamsAlerts
-    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=' + altLat + ',' + altLon + '&urgency=expected,immediate&severity=moderate,severe,extreme&certainty=possible,likely,observed',
-				requestContentType: "application/json",
-				contentType: "application/json" ] 
+//    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=' + altLat + ',' + altLon + '&urgency=expected,immediate&severity=moderate,severe,extreme&certainty=possible,likely,observed',
+    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+                    requestContentType: "application/json",
+				    contentType: "application/json" ] 
     LOGINFO("Poll api.weather.gov/alerts/active: $ParamsAlerts")
 	asynchttpGet("pollAlertsHandler", ParamsAlerts)
     return
 }
 
 void pollAlertsHandler(resp, data) {
-    LOGINFO("OpenWeatherMap.org Weather Driver - INFO: Polling api.weather.gov/alerts/active")
     if(resp.getStatus() != 200 && resp.getStatus() != 207) {        
-        LOGWARN('Calling https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=' + altLat + ',' + altLon + '&urgency=expected,immediate&severity=moderate,severe,extreme&certainty=possible,likely,observed')
+        LOGWARN('Calling https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed')        
         LOGWARN(resp.getStatus() + ":" + resp.getErrorMessage())
 	} else {
         def NWSAlerts = parseJson(resp.data)
-        LOGINFO((!NWSAlerts.features[0] || NWSAlerts.features[0] == "") ? 'NWS Alert Data: No alerts.' : 'NWS Alert Data: ' + NWSAlerts) 
-        if(!NWSAlerts.features[0] || NWSAlerts.features[0] == "") {
+        LOGINFO((!NWSAlerts.features[0].properties.event || NWSAlerts.features[0].properties.event == "") ? 'NWS Alert Data: No alerts.' : 'NWS Alert Data: ' + NWSAlerts) 
+        if(!NWSAlerts.features[0].properties.event || NWSAlerts.features[0].properties.event == "") {
             updateDataValue('noAlert','true')
             updateDataValue("alert", 'No current weather alerts for this area.')
             updateDataValue("alertTileLink", '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')        
@@ -698,13 +698,13 @@ void PostPoll() {
         if(my3day.length() + 33 > 1024) {
             my3day = "Too much data to display.</br></br>Exceeds maximum tile length by " + 1024 - my3day.length() - 33 + " characters."
         }else if((my3day.length() + OWMIcon.length() + 11) < 1025) {
-            my3day += OWMIcon + ' @ ' + getDataValue('Summary_last_poll_time')
+            my3day += OWMIcon + ' @ ' + getDataValue('Summary_last_poll_time')
         }else if((my3day.length() + OWMText.length() + 11) < 1025) {
-            my3day += OWMIcon2 + ' @ ' + getDataValue('Summary_last_poll_time')
+            my3day += OWMIcon2 + ' @ ' + getDataValue('Summary_last_poll_time')
         }else if((my3day.length() + OWMText2.length() + 11) < 1025) {
-            my3day += OWMText + ' @ ' + getDataValue('Summary_last_poll_time')
+            my3day += OWMText + ' @ ' + getDataValue('Summary_last_poll_time')
         }else{
-            my3day += 'OpenWeatherMap.org @ ' + getDataValue('Summary_last_poll_time')
+            my3day += 'OpenWeatherMap.org @ ' + getDataValue('Summary_last_poll_time')
         }
         sendEvent(name: "threedayfcstTile", value: my3day.take(1024))
     }
@@ -723,7 +723,8 @@ void PostPoll() {
             wgust = 0.0g
         } else {
             wgust = getDataValue("wind_gust").toBigDecimal()
-        }        
+        }
+        
         String mytextb = '<span style="display:inline;"><a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank">' + getDataValue("city") + '</a><br>'
         String mytextm1 = getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alertLink")) + alertStyleClose
         String mytextm2 = getDataValue("condition_text") + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue("alertLink2")) + alertStyleClose
@@ -733,31 +734,28 @@ void PostPoll() {
         mytexte+= '<span style=\"font-size:.9em;\"><img src=' + getDataValue("iconLocation") + getDataValue("wind_bft_icon") + iconCloseStyled + getDataValue("wind_direction") + " "
         mytexte+= (getDataValue("wind").toBigDecimal() < 1.0 ? 'calm' : "@ " + String.format(ddisp_twd, getDataValue("wind").toBigDecimal()) + " " + dMetric)
         mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  "@ " + String.format(ddisp_twd, wgust) + " " + dMetric) + '<br>'
-        mytexte+= '<img src=' + getDataValue("iconLocation") + 'wb.png' + iconCloseStyled + String.format(ddisp_p, getDataValue("pressure").toBigDecimal()) + " " + pMetric + '     <img src=' + getDataValue("iconLocation") + 'wh.png' + iconCloseStyled
-        mytexte+= getDataValue("humidity") + '%     ' + '<img src=' + getDataValue("iconLocation") + 'wu.png' + iconCloseStyled + (getDataValue("rainToday").toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue("rainToday").toBigDecimal()) + " " + rMetric : "None") + '<br>'
-        mytexte+= '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconCloseStyled + getDataValue("localSunrise") + '     <img src=' + getDataValue("iconLocation") + 'wss.png' + iconCloseStyled
-        mytexte+= getDataValue("localSunset") + '     Updated: ' + getDataValue('Summary_last_poll_time')
+        mytexte+= '<img src=' + getDataValue("iconLocation") + 'wb.png' + iconCloseStyled + String.format(ddisp_p, getDataValue("pressure").toBigDecimal()) + " " + pMetric + '     <img src=' + getDataValue("iconLocation") + 'wh.png' + iconCloseStyled
+        mytexte+= getDataValue("humidity") + '%     ' + '<img src=' + getDataValue("iconLocation") + 'wu.png' + iconCloseStyled + (getDataValue("rainToday").toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue("rainToday").toBigDecimal()) + " " + rMetric : "None") + '<br>'
+        mytexte+= '<img src=' + getDataValue("iconLocation") + 'wsr.png' + iconCloseStyled + getDataValue("localSunrise") + '     <img src=' + getDataValue("iconLocation") + 'wss.png' + iconCloseStyled
+        mytexte+= getDataValue("localSunset") + '     Updated: ' + getDataValue('Summary_last_poll_time')
+        
         String mytext = mytextb + mytextm1 + mytexte
         if((mytext.length() + OWMIcon.length() + 10) < 1025) {
             mytext+= '<br>' + OWMIcon + '</span>'
-        }else{
-            if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
+        } else if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
                 mytext+= '<br>' + OWMIcon2 + '</span>'
-            }else{
-                if((mytext.length() + OWMText.length() + 10) < 1025) {
+        } else if((mytext.length() + OWMText.length() + 10) < 1025) {
                     mytext+= '<br>' + OWMText + '</span>'
-                }else{
-                    mytext = mytextb + mytextm2 + mytexte
-                    if((mytext.length() + OWMIcon.length() + 10) < 1025) {
-                        mytext+= '<br>' + OWMIcon + '</span>'
-                    }else if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
-                        mytext+= '<br>' + OWMIcon2 + '</span>'
-                    }else if((mytext.length() + OWMText.length() + 10) < 1025) {
-                        mytext+= '<br>' + OWMText + '</span>'
-                    }else{
-                        mytext+= '<br>Forecast by OpenWeatherMap.org</span>'
-                    }
-                }
+        } else {
+            mytext = mytextb + mytextm2 + mytexte
+            if((mytext.length() + OWMIcon.length() + 10) < 1025) {
+                mytext+= '<br>' + OWMIcon + '</span>'
+            }else if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
+                mytext+= '<br>' + OWMIcon2 + '</span>'
+            }else if((mytext.length() + OWMText.length() + 10) < 1025) {
+                mytext+= '<br>' + OWMText + '</span>'
+            }else{
+                mytext+= '<br>Forecast by OpenWeatherMap.org</span>'
             }
         }
         if(mytext.length() > 1024) {
