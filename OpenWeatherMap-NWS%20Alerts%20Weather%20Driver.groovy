@@ -43,13 +43,13 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
  
-   Last Update 04/17/2020
+   Last Update 04/18/2020
   { Left room below to document version changes...}
 
 
    V0.0.1   Initial conversion from Dark Sky to OWM                                           - 04/17/2020
    V0.0.2   Fixed Alerts on myTile and alertTile, Capitalized condition_text                  - 04/17/2020
-
+   V0.0.3   More fixes on Alerts, mapped condition_code, weatherIcon(s)                       - 04/18/2020
 
 
 
@@ -82,7 +82,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "0.0.2"  }
+public static String version()      {  return "0.0.3"  }
 import groovy.transform.Field
 
 metadata {
@@ -423,11 +423,13 @@ void pollOWMHandler(resp, data) {
         updateDataValue("Precip1", (Math.round(((rainFormat != "Inches" ? t_p1 : t_p1 * 0.03937008) * getDataValue("mult_r").toBigDecimal())) / getDataValue("mult_r").toBigDecimal()).toString())
         updateDataValue("Precip2", (Math.round(((rainFormat != "Inches" ? t_p2 : t_p2 * 0.03937008) * getDataValue("mult_r").toBigDecimal())) / getDataValue("mult_r").toBigDecimal()).toString())
 
-        updateDataValue("condition_code", owm.current.weather[0].id.toString())
-        updateDataValue("condition_text", owm.current.weather[0].description.capitalize())    
+        updateDataValue("condition_id", owm.current.weather[0].id.toString())
+        updateDataValue('condition_code', getCondCode(owm.current.weather[0].id, getDataValue('is_day')))
+        updateDataValue("condition_text", owm.current.weather[0].description.capitalize())
 
-        updateDataValue("forecast_code", owm.daily[0].weather[0].id.toString())
-        updateDataValue("forecast_text", owm.daily[0].weather[0].description)
+        updateDataValue("forecast_id", owm.daily[0].weather[0].id.toString())
+        updateDataValue('forecast_code', getCondCode(owm.daily[0].weather[0].id, 'true'))
+        updateDataValue("forecast_text", owm.daily[0].weather[0].description.capitalize())
 
         if(threedayTilePublish) {
             
@@ -436,11 +438,13 @@ void pollOWMHandler(resp, data) {
 
             updateDataValue("is_day1", "true")
             updateDataValue("is_day2", "true")
-            updateDataValue("forecast_code1", owm.daily[1].weather[0].id.toString())
-            updateDataValue("forecast_text1", owm.daily[1].weather[0].description)
+            updateDataValue("forecast_id1", owm.daily[1].weather[0].id.toString())
+            updateDataValue('forecast_code1', getCondCode(owm.daily[1].weather[0].id, 'true'))
+            updateDataValue("forecast_text1", owm.daily[1].weather[0].description.capitalize())
 
-            updateDataValue("forecast_code2", owm.daily[2].weather[0].id.toString())
-            updateDataValue("forecast_text2", owm.daily[2].weather[0].description)
+            updateDataValue("forecast_id2", owm.daily[2].weather[0].id.toString())
+            updateDataValue('forecast_code2', getCondCode(owm.daily[2].weather[0].id, 'true'))
+            updateDataValue("forecast_text2", owm.daily[2].weather[0].description.capitalize())
     
             updateDataValue("forecastHigh1", (tMetric=="°F" ? (Math.round(owm.daily[1].temp.max.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((owm.daily[1].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())
             updateDataValue("forecastHigh2", (tMetric=="°F" ? (Math.round(owm.daily[2].temp.max.toBigDecimal() * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger()) : (Math.round((owm.daily[2].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue("mult_twd").toInteger()) / getDataValue("mult_twd").toInteger())).toString())    
@@ -492,7 +496,6 @@ void pollOWMHandler(resp, data) {
 // <<<<<<<<<< Begin NWS Active Alert Poll Routines >>>>>>>>>>
 void pollAlerts() {
     def ParamsAlerts
-//    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert&point=' + altLat + ',' + altLon + '&urgency=expected,immediate&severity=moderate,severe,extreme&certainty=possible,likely,observed',
     ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
                     requestContentType: "application/json",
 				    contentType: "application/json" ] 
@@ -507,10 +510,9 @@ void pollAlertsHandler(resp, data) {
         LOGWARN(resp.getStatus() + ":" + resp.getErrorMessage())
 	} else {
         def NWSAlerts = parseJson(resp.data)
-        LOGINFO((!NWSAlerts.features[0].properties.event || NWSAlerts.features[0].properties.event == "") ? 'NWS Alert Data: No alerts.' : 'NWS Alert Data: ' + NWSAlerts) 
-        if(!NWSAlerts.features[0].properties.event || NWSAlerts.features[0].properties.event == "") {
+        if(NWSAlerts.features[0] == null) {           
             updateDataValue('noAlert','true')
-            updateDataValue("alert", 'No current weather alerts for this area.')
+            updateDataValue("alert", 'No current weather alerts for this area')
             updateDataValue("alertTileLink", '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')        
             updateDataValue("alertLink", '<a>' + getDataValue("condition_text") + '</a>')        
             updateDataValue("alertLink2", '<a>' + getDataValue("condition_text") + '</a>')
@@ -557,7 +559,7 @@ void updateLux(boolean pollAgain=true) {
 			return
 		}
 	}
-    def (lux, bwn) = estimateLux(getDataValue("condition_code").toInteger(), getDataValue("cloud").toInteger())
+    def (lux, bwn) = estimateLux(getDataValue("condition_id").toInteger(), getDataValue("cloud").toInteger())
     updateDataValue("illuminance", !lux ? "0" : lux.toString())
     updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
 	updateDataValue("bwn", bwn)
@@ -596,11 +598,11 @@ void PostPoll() {
     
 /*  'Required for Dashboards' Data Elements */    
     if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "city", value: getDataValue("city")) }
-    if(dashSharpToolsPublish) { sendEvent(name: "forecastIcon", value: getImgName(getDataValue("condition_code").toInteger(), getDataValue('is_day'))) }
+    if(dashSharpToolsPublish) { sendEvent(name: "forecastIcon", value: getCondCode(getDataValue("condition_id").toInteger(), getDataValue('is_day'))) }
     if(dashSharpToolsPublish || dashSmartTilesPublish || rainTodayPublish) { sendEvent(name: "rainToday", value: getDataValue("rainToday").toBigDecimal(), unit: rMetric) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weather", value: getDataValue("condition_text")) }
-    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weatherIcon", value: getImgName(getDataValue("condition_code").toInteger(), getDataValue('is_day'))) }
-    if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: getImgName(getDataValue("condition_code").toInteger(), getDataValue('is_day'))) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: "weatherIcon", value: getCondCode(getDataValue("condition_id").toInteger(), getDataValue('is_day'))) }
+    if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: getCondCode(getDataValue("condition_id").toInteger(), getDataValue('is_day'))) }
     if(dashHubitatOWMPublish || dashSharpToolsPublish || windPublish) { sendEvent(name: "wind", value: getDataValue("wind").toBigDecimal(), unit: dMetric) }
     if(dashHubitatOWMPublish) { sendEvent(name: "windSpeed", value: getDataValue("wind").toBigDecimal(), unit: dMetric) }
     if(dashHubitatOWMPublish) { sendEvent(name: "windDirection", value: getDataValue("wind_degree").toInteger(), unit: "DEGREE")   }
@@ -901,7 +903,7 @@ void initialize() {
     boolean summaryType = (settings?.summaryType ?: false)
     String iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
-    state.OWM = '<a href=\"https://opemweathermap.org/\" target=\'_blank\'>OpenWeatherMap.org</a>'
+    state.OWM = '<a href="https://openweathermap.org" target="_blank"><img src=' + getDataValue("iconLocation") + 'OWM.png style="height:2em;"></a>'
     setDateTimeFormats(datetimeFormat)
     String dMetric
     String pMetric
@@ -1068,7 +1070,7 @@ public void setDisplayDecimals(TWDDisp, PressDisp, RainDisp) {
     return
 }
 
-def estimateLux(int condition_code, int cloud)     {	
+def estimateLux(int condition_id, int cloud)     {	
 	long lux = 0l
 	boolean aFCC = true
 	double l
@@ -1145,13 +1147,12 @@ def estimateLux(int condition_code, int cloud)     {
 			aFCC = false
 			break
 	}
-    String cC = condition_code.toString()
+    String cC = condition_id.toString()
 	String cCT = " using cloud cover from API"
-//	double cCF = (!cloud || cloud=="") ? 0.998d : ((100 - (cloud/100 / 3d)) / 100)
     double cCF = (!cloud || cloud=="") ? 0.998d : (1 - (cloud/100 / 3d))
     if(aFCC){
         if(!cloud){
-            LUitem = LUTable.find{ it.id == condition_code }            
+            LUitem = LUTable.find{ it.id == condition_id }            
 			if (LUitem)    {
 				cCF = (LUitem ? (LUitem.luxpercent / 3d) : 0.998d)
 				cCT = ' using estimated cloud cover based on condition.'
@@ -1193,7 +1194,6 @@ void SummaryMessage(boolean SType, String Slast_poll_date, String Slast_poll_tim
     } else {
         windgust = getDataValue("wind_gust").toBigDecimal()
     }
-//    String owmIcon = '<a href=\"https://opemweathermap.org/\">OpenWeatherMap.org style=\"height:1.5em;display:inline;\"></a>'    
     String wSum = (String)null
     if(SType == true){
         wSum = "Weather summary for " + getDataValue("city") + " updated at ${Slast_poll_time} on ${Slast_poll_date}. "
@@ -1204,7 +1204,7 @@ void SummaryMessage(boolean SType, String Slast_poll_date, String Slast_poll_tim
         wSum+= "Wind: " + getDataValue("wind_string") + ", gusts: " + ((windgust < 1.00) ? "calm. " : "up to " + windgust.toString() + " " + dMetric + ". ")
         wSum+= Sprecip
         wSum+= Svis
-        wSum+= ((!getDataValue("alert") || getDataValue("alert")==null) ? "" : " " + getDataValue("alert"))
+        wSum+= ((!getDataValue("alert") || getDataValue("alert")==null) ? "" : " " + getDataValue("alert") + '.')
     } else {
         wSum = getDataValue("condition_text") + " "
         wSum+= ((!SforecastTemp || SforecastTemp=="") ? ". " : "${SforecastTemp}")
@@ -1221,6 +1221,13 @@ String getImgName(int wCode, String iconTOD){
     LUitem = LUTable.find{ it.id == wCode }
 	LOGINFO("getImgName Result: image: " + "${iconTOD}"=='true' ? (LUitem ? LUitem.Icond : 'na.png') : (LUitem ? LUitem.Iconn : 'na.png'))
     return ("${iconTOD}"=='true' ? (LUitem ? LUitem.Icond : 'na.png') : (LUitem ? LUitem.Iconn : 'na.png'))
+}
+
+String getCondCode(int cid, String iconTOD){
+    LOGINFO("getCondCode Input: cid: " + cid.toString() + " is_day: ${iconTOD}")
+    LUitem = LUTable.find{ it.id == cid }
+	LOGINFO("getCondCode Result: cod: " + "${iconTOD}"=='true' ? (LUitem ? LUitem.stdIcond : 'na.png') : (LUitem ? LUitem.stdIconn : 'na.png'))
+    return ("${iconTOD}"=='true' ? (LUitem ? LUitem.stdIcond : 'na.png') : (LUitem ? LUitem.stdIconn : 'na.png'))
 }
 
 void logCheck(){
@@ -1271,61 +1278,62 @@ void sendEventPublish(evt)	{
 }
 
 @Field final List    LUTable =     [
-[id: 200, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 201, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 202, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 210, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 211, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 212, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 221, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 230, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 231, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 232, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2],
-[id: 300, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 301, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 302, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 310, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 311, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 312, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 313, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 314, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 321, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 500, OWMd: '10d.png', OWMn: '09n.png', Icond: '39.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 501, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 502, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 503, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 504, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 511, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 520, OWMd: '10d.png', OWMn: '09n.png', Icond: '39.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 521, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 522, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5],
-[id: 531, OWMd: '10d.png', OWMn: '09n.png', Icond: '39.png', Iconn: '9.png', luxpercent: 0.5],
-[id: 600, OWMd: '13d.png', OWMn: '13n.png', Icond: '13.png', Iconn: '46.png', luxpercent: 0.4],
-[id: 601, OWMd: '13d.png', OWMn: '13n.png', Icond: '14.png', Iconn: '46.png', luxpercent: 0.3],
-[id: 602, OWMd: '13d.png', OWMn: '13n.png', Icond: '16.png', Iconn: '46.png', luxpercent: 0.3],
-[id: 611, OWMd: '13d.png', OWMn: '13n.png', Icond: '9.png', Iconn: '46.png', luxpercent: 0.5],
-[id: 612, OWMd: '13d.png', OWMn: '13n.png', Icond: '8.png', Iconn: '46.png', luxpercent: 0.5],
-[id: 613, OWMd: '13d.png', OWMn: '13n.png', Icond: '9.png', Iconn: '46.png', luxpercent: 0.5],
-[id: 615, OWMd: '13d.png', OWMn: '13n.png', Icond: '39.png', Iconn: '45.png', luxpercent: 0.5],
-[id: 616, OWMd: '13d.png', OWMn: '13n.png', Icond: '39.png', Iconn: '45.png', luxpercent: 0.5],
-[id: 620, OWMd: '13d.png', OWMn: '13n.png', Icond: '13.png', Iconn: '46.png', luxpercent: 0.4],
-[id: 621, OWMd: '13d.png', OWMn: '13n.png', Icond: '16.png', Iconn: '46.png', luxpercent: 0.3],
-[id: 622, OWMd: '13d.png', OWMn: '13n.png', Icond: '54.png', Iconn: '55.png', luxpercent: 0.3],
-[id: 701, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 711, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 721, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 731, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 741, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 751, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 761, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 762, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 771, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 781, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8],
-[id: 800, OWMd: '01d.png', OWMn: '01n.png', Icond: '32.png', Iconn: '31.png', luxpercent: 1],
-[id: 801, OWMd: '02d.png', OWMn: '02n.png', Icond: '34.png', Iconn: '33.png', luxpercent: 0.9],
-[id: 802, OWMd: '03d.png', OWMn: '03n.png', Icond: '53.png', Iconn: '52.png', luxpercent: 0.8],
-[id: 803, OWMd: '04d.png', OWMn: '04n.png', Icond: '51.png', Iconn: '50.png', luxpercent: 0.6],
-[id: 804, OWMd: '04d.png', OWMn: '04n.png', Icond: '51.png', Iconn: '50.png', luxpercent: 0.6],
+[id: 200, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 201, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 202, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 210, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 211, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 212, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 221, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 230, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 231, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 232, OWMd: '11d.png', OWMn: '11n.png', Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: 'chancetstorms', stdIconn: 'nt_chancetstorms'],
+[id: 300, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 301, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 302, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 310, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 311, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 312, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 313, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 314, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 321, OWMd: '09d.png', OWMn: '09n.png', Icond: '9.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 500, OWMd: '10d.png', OWMn: '09n.png', Icond: '39.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 501, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 502, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 503, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 504, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 511, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 520, OWMd: '10d.png', OWMn: '09n.png', Icond: '39.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 521, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 522, OWMd: '10d.png', OWMn: '10n.png', Icond: '39.png', Iconn: '11.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 531, OWMd: '10d.png', OWMn: '09n.png', Icond: '39.png', Iconn: '9.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 600, OWMd: '13d.png', OWMn: '13n.png', Icond: '13.png', Iconn: '46.png', luxpercent: 0.4, stdIcond: 'flurries', stdIconn: 'nt_snow'],
+[id: 601, OWMd: '13d.png', OWMn: '13n.png', Icond: '14.png', Iconn: '46.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
+[id: 602, OWMd: '13d.png', OWMn: '13n.png', Icond: '16.png', Iconn: '46.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
+[id: 611, OWMd: '13d.png', OWMn: '13n.png', Icond: '9.png', Iconn: '46.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_snow'],
+[id: 612, OWMd: '13d.png', OWMn: '13n.png', Icond: '8.png', Iconn: '46.png', luxpercent: 0.5, stdIcond: 'sleet', stdIconn: 'nt_snow'],
+[id: 613, OWMd: '13d.png', OWMn: '13n.png', Icond: '9.png', Iconn: '46.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_snow'],
+[id: 615, OWMd: '13d.png', OWMn: '13n.png', Icond: '39.png', Iconn: '45.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 616, OWMd: '13d.png', OWMn: '13n.png', Icond: '39.png', Iconn: '45.png', luxpercent: 0.5, stdIcond: 'rain', stdIconn: 'nt_rain'],
+[id: 620, OWMd: '13d.png', OWMn: '13n.png', Icond: '13.png', Iconn: '46.png', luxpercent: 0.4, stdIcond: 'flurries', stdIconn: 'nt_snow'],
+[id: 621, OWMd: '13d.png', OWMn: '13n.png', Icond: '16.png', Iconn: '46.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
+[id: 622, OWMd: '13d.png', OWMn: '13n.png', Icond: '54.png', Iconn: '55.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
+[id: 701, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 711, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 721, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 731, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 741, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 751, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 761, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 762, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 771, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 781, OWMd: '50d.png', OWMn: '50n.png', Icond: '23.png', Iconn: '23.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 800, OWMd: '01d.png', OWMn: '01n.png', Icond: '32.png', Iconn: '31.png', luxpercent: 1, stdIcond: 'clear', stdIconn: 'nt_clear'],
+[id: 801, OWMd: '02d.png', OWMn: '02n.png', Icond: '34.png', Iconn: '33.png', luxpercent: 0.9, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 802, OWMd: '03d.png', OWMn: '03n.png', Icond: '53.png', Iconn: '52.png', luxpercent: 0.8, stdIcond: 'partlycloudy', stdIconn: 'nt_partlycloudy'],
+[id: 803, OWMd: '04d.png', OWMn: '04n.png', Icond: '51.png', Iconn: '50.png', luxpercent: 0.6, stdIcond: 'mostlycloudy', stdIconn: 'nt_mostlycloudy'],
+[id: 804, OWMd: '04d.png', OWMn: '04n.png', Icond: '51.png', Iconn: '50.png', luxpercent: 0.6, stdIcond: 'mostlycloudy', stdIconn: 'nt_mostlycloudy'],
+
     ]
 
 @Field static attributesMap = [
