@@ -1,6 +1,6 @@
 /*
    OpenWeatherMap-NWS Alerts Weather Driver
-   Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS%20Alerts%20Weather%20Driver/master/OpenWeatherMap-NWS%20Alerts%20Weather%20Driver.groovy
+   Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-NWS%2520Alerts%2520Weather%2520Driver.groovy
    Copyright 2020 @Matthew (Scottma61)
  
    This driver has morphed many, many times, so the genesis is very blurry now.  It stated as a WeatherUnderground
@@ -89,7 +89,7 @@ metadata {
     definition (name: "OpenWeatherMap-NWS Alerts Weather Driver", 
                 namespace: "Matthew", 
                 author: "Scottma61", 
-                importUrl: "https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS%20Alerts%20Weather%20Driver/master/OpenWeatherMap-NWS%20Alerts%20Weather%20Driver.groovy") {
+                importUrl: "https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-NWS%2520Alerts%2520Weather%2520Driver.groovy") {
         capability "Sensor"
         capability "Temperature Measurement"
         capability "Illuminance Measurement"
