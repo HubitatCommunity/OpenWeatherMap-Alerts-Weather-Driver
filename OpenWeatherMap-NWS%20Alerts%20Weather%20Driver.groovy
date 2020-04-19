@@ -19,6 +19,7 @@
      https://github.com/jebbett for new cooler 'Alternative' weather icons with icons courtesy
      of https://www.deviantart.com/vclouds/art/VClouds-Weather-Icons-179152045.
     - @storageanarchy for his Dark Sky Icon mapping and some new icons to compliment the Vclouds set.
+    - @nh.schottfam for lots of code clean up and optimizations.
 
    In addition to all the cloned code from the Hubitat community, I have heavily modified/created new
    code myself @Matthew (Scottma61) with lots of help from the Hubitat community.  If you believe you
@@ -43,7 +44,7 @@
    on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 04/18/2020
+   Last Update 04/19/2020
   { Left room below to document version changes...}
 
 
@@ -51,6 +52,7 @@
    V0.0.2   Fixed Alerts on myTile and alertTile, Capitalized condition_text                  - 04/17/2020
    V0.0.3   More fixes on Alerts, mapped condition_code, weatherIcon(s)                       - 04/18/2020
    V0.0.4   Corrected forecast icon to always be 'day' instead of current time                - 04/18/2020
+   V0.0.5   More code cleanup and optimizations (Thanks @nh.schottfam!)                       - 04/19/2020
 
 
 
@@ -82,7 +84,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return "0.0.4"  }
+public static String version()      {  return "0.0.5"  }
 import groovy.transform.Field
 
 metadata {
@@ -193,35 +195,33 @@ metadata {
 // <<<<<<<<<< Begin Sunrise-Sunset Poll Routines >>>>>>>>>>
 void pollSunRiseSet() {
     String currDate = new Date().format("yyyy-MM-dd", TimeZone.getDefault())
-    LOGINFO("OpenWeatherMap.org Weather Driver - INFO: Polling Sunrise-Sunset.org")
+    LOGINFO("Polling Sunrise-Sunset.org")
     def requestParams = [ uri: "https://api.sunrise-sunset.org/json?lat=" + altLat + "&lng=" + altLon + "&formatted=0" ]
     if (currDate) {requestParams = [ uri: "https://api.sunrise-sunset.org/json?lat=" + altLat + "&lng=" + altLon + "&formatted=0&date=$currDate" ]}
     LOGINFO("Poll Sunrise-Sunset: $requestParams")
     asynchttpGet("sunRiseSetHandler", requestParams)
-    return
 }
 
 void sunRiseSetHandler(resp, data) {
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
 		sunRiseSet = resp.getJson().results
 		updateDataValue("sunRiseSet", resp.data)
-        LOGINFO("Sunrise-Sunset Data: $sunRiseSet")
-        setDateTimeFormats(datetimeFormat)
+		LOGINFO("Sunrise-Sunset Data: $sunRiseSet")
+		setDateTimeFormats(datetimeFormat)
 		updateDataValue("riseTime", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise).format("HH:mm", TimeZone.getDefault()))
         updateDataValue("noonTime", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.solar_noon).format("HH:mm", TimeZone.getDefault()))
 		updateDataValue("setTime", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format("HH:mm", TimeZone.getDefault()))
-        updateDataValue("tw_begin", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_begin).format("HH:mm", TimeZone.getDefault()))
-        updateDataValue("tw_end", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_end).format("HH:mm", TimeZone.getDefault()))
+		updateDataValue("tw_begin", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_begin).format("HH:mm", TimeZone.getDefault()))
+		updateDataValue("tw_end", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.civil_twilight_end).format("HH:mm", TimeZone.getDefault()))
 		updateDataValue("localSunset",new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset).format(timeFormat, TimeZone.getDefault()))
 		updateDataValue("localSunrise", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise).format(timeFormat, TimeZone.getDefault()))
-        updateDataValue("riseTime1", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise + 86400000).format("HH:mm", TimeZone.getDefault()))
-        updateDataValue("riseTime2", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise + 86400000 + 86400000).format("HH:mm", TimeZone.getDefault()))
-        updateDataValue("setTime1", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset + 86400000).format("HH:mm", TimeZone.getDefault()))
-        updateDataValue("setTime2", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset + 86400000 + 86400000).format("HH:mm", TimeZone.getDefault()))
+		updateDataValue("riseTime1", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise + 86400000).format("HH:mm", TimeZone.getDefault()))
+		updateDataValue("riseTime2", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunrise + 86400000 + 86400000).format("HH:mm", TimeZone.getDefault()))
+		updateDataValue("setTime1", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset + 86400000).format("HH:mm", TimeZone.getDefault()))
+		updateDataValue("setTime2", new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", sunRiseSet.sunset + 86400000 + 86400000).format("HH:mm", TimeZone.getDefault()))
     } else {
-		log.warn "OpenWeatherMap.org Weather Driver - WARNING: Sunrise-Sunset api did not return data"
+		log.warn "OpenWeatherMap.org Weather Driver - WARNING: Sunrise-Sunset api did not return data: $resp.getStatus()"
 	}
-    return
 }
 // >>>>>>>>>> End Sunrise-Sunset Poll Routines <<<<<<<<<<
 
@@ -239,13 +239,13 @@ void pollOWM() {
 }
 
 void pollOWMHandler(resp, data) {
-    LOGINFO("OpenWeatherMap.org Weather Driver - INFO: Polling OpenWeatherMap.org")
-    if(resp.getStatus() != 200 && resp.getStatus() != 207) {        
+    LOGINFO("Polling OpenWeatherMap.org")
+    if(resp.getStatus() != 200 && resp.getStatus() != 207) {
         log.warn "Calling https://api.openweathermap.org/data/2.5/onecall?lat=" + altLat + "&lon=" + altLon + "&mode=json&units=imperial&appid=" + apiKey
         log.warn resp.getStatus() + ":" + resp.getErrorMessage()
 	} else {
         def owm = parseJson(resp.data)
-//        LOGINFO("OpenWeatherMap Data: " + owm)
+        LOGINFO("OpenWeatherMap Data: " + owm)
 // <<<<<<<<<< Begin Setup Global Variables >>>>>>>>>>
         setDateTimeFormats(datetimeFormat)
         setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
@@ -277,7 +277,7 @@ void pollOWMHandler(resp, data) {
             }else{
                 log.info("OpenWeatherMap.org Weather Driver - INFO: Switching to Nighttime schedule.")
             }
-            initialize()
+            initialize_poll()
             updateDataValue("is_lightOld", getDataValue("is_light"))
         }
 // >>>>>>>>>> End Setup Global Variables <<<<<<<<<<
@@ -406,7 +406,7 @@ void pollOWMHandler(resp, data) {
         String s_direction
 // >>>>>>>>>> End Process Standard Weather-Station Variables (Regardless of Forecast Selection)  <<<<<<<<<<	
         
-	    int cloudCover
+	    Integer cloudCover
         if (!owm.current.clouds) {
             cloudCover = 1
         } else {
@@ -480,7 +480,6 @@ void pollOWMHandler(resp, data) {
 
 	    // <<<<<<<<<< Begin Icon Processing  >>>>>>>>>>
         String imgName = (getDataValue("iconType")== 'true' ? getImgName(owm.current.weather[0].id, getDataValue('is_day')) : getImgName(owm.daily[0].weather[0].id, getDataValue('is_day')))
-        LOGINFO("imgName: " + imgName)
         sendEventPublish(name: "condition_icon", value: '<img src=' + getDataValue("iconLocation") + imgName + (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : "") + '>')
         sendEventPublish(name: "condition_iconWithText", value: "<img src=" + getDataValue("iconLocation") + imgName + (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : "") + "><br>" + (getDataValue("iconType")== 'true' ? getDataValue("condition_text") : getDataValue("forecast_text")))
         sendEventPublish(name: "condition_icon_url", value: getDataValue("iconLocation") + imgName + (((getDataValue("iconLocation").toLowerCase().contains('://github.com/')) && (getDataValue("iconLocation").toLowerCase().contains('/blob/master/'))) ? "?raw=true" : ""))
@@ -545,7 +544,7 @@ void pollAlertsHandler(resp, data) {
 
 // >>>>>>>>>> Begin Lux Processing <<<<<<<<<<
 void updateLux(Boolean pollAgain=true) {
-	LOGINFO("UpdateLux $pollAgain")
+	LOGINFO("Calling UpdateLux($pollAgain)")
 	if(pollAgain) {
 		String curTime = new Date().format("HH:mm", TimeZone.getDefault())
 		String newLight
@@ -560,10 +559,10 @@ void updateLux(Boolean pollAgain=true) {
 		}
 	}
     def (lux, bwn) = estimateLux(getDataValue("condition_id").toInteger(), getDataValue("cloud").toInteger())
-    updateDataValue("illuminance", !lux ? "0" : lux.toString())
-    updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
-	updateDataValue("bwn", bwn)
-	if(pollAgain) PostPoll()
+        updateDataValue("illuminance", !lux ? "0" : lux.toString())
+        updateDataValue("illuminated", String.format("%,4d", !lux ? 0 : lux).toString())
+        updateDataValue("bwn", bwn)
+        if(pollAgain) PostPoll()
     return
 }
 // >>>>>>>>>> End Lux Processing <<<<<<<<<<
@@ -826,22 +825,33 @@ public void refresh() {
     return
 }
 
+void installed() {
+    updateDataValue('is_light', 'true')
+    updateDataValue('is_lightOld', getDataValue('is_light')) //avoid startup oscilation
+}
+
 void updated()   {
 	unschedule()
 	updateCheck()
-	initialize()
+	initMe()
+    runIn(5,finishSched)
+}
+
+void finishSched() {
+    pollSunRiseSet()
+    initialize_poll()
     runEvery5Minutes(updateLux, [Data: [true]])
 	Random rand = new Random(now())
 	Integer ssseconds = rand.nextInt(60)
 	schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
-	runIn(5, pollOWM)
+	runIn(5, pollData)
 	if(settingEnable) runIn(2100,settingsOff)// "roll up" (hide) the condition selectors after 35 min
-	if(settings.logSet) runIn(1800,logsOff)// "turns off extended logging after 30 min
+    if(settings.logSet) runIn(1800,logsOff)// "turns off extended logging after 30 min
 	Integer r_minutes = rand.nextInt(60)
 	schedule("0 ${r_minutes} 8 ? * FRI *", updateCheck)
 }
-void initialize() {
-    unschedule(pollOWM)
+                    
+void initMe() {
     Boolean logSet = (settings.logSet ?: false)
     String city = (settings.city ?: "")
     updateDataValue("city", city)
@@ -868,10 +878,8 @@ void initialize() {
             } else {
                 device.updateSetting("altLon", [value:valtLon,type:"text"])
             }
-        }    
+        }
     } else {
-        device.removeSetting("altLat")
-        device.removeSetting("altLon")
         device.updateSetting("altLat", [value:valtLat,type:"text"])
         device.updateSetting("altLon", [value:valtLon,type:"text"])
         if (altLat == null || altLon == null) {
@@ -883,43 +891,42 @@ void initialize() {
             if ((valtLon == null) || (valtLon = "")) {
                 log.error "OpenWeatherMap.org Weather Driver - ERROR: The Hub's longitude is not set. Please set it, or use the Override Coorinates feature."
             } else {
-                device.updateSetting("altLon", [value:valtLon,type:"text"])        
+                device.updateSetting("altLon", [value:valtLon,type:"text"])
             }
         }
     }
-    String pollIntervalForecast = (settings?.pollIntervalForecast ?: "3 Hours")
-    String pollIntervalForecastnight = (settings?.pollIntervalForecastnight ?: "3 Hours")
-    String datetimeFormat = (settings?.datetimeFormat ?: "1")
-    String distanceFormat = (settings?.distanceFormat ?: "Miles (mph)")
-    String pressureFormat = (settings?.pressureFormat ?: "Inches")
-    String TWDDecimals = (settings?.TWDDecimals ?: "0")
-    String PDecimals = (settings?.PDecimals ?: "0")
-    String RDecimals = (settings?.PDecimals ?: "0")
-    String rainFormat = (settings?.rainFormat ?: "Inches")
-    String tempFormat = (settings?.tempFormat ?: "Fahrenheit (°F)")
-    Boolean luxjitter = (settings?.luxjitter ?: false)
-    Boolean iconType = (settings?.iconType ?: false)
+    Boolean luxjitter = (settings.luxjitter ?: false)
+    Boolean iconType = (settings.iconType ?: false)
+    Boolean summaryType = (settings.summaryType ?: false)
     updateDataValue("iconType", iconType ? 'true' : 'false')
-    Boolean summaryType = (settings?.summaryType ?: false)
-    String iconLocation = (settings?.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
+    String iconLocation = (settings.iconLocation ?: "https://tinyurl.com/y6xrbhpf/")
     updateDataValue("iconLocation", iconLocation)
     state.OWM = '<a href="https://openweathermap.org" target="_blank"><img src=' + getDataValue("iconLocation") + 'OWM.png style="height:2em;"></a>'
+    String datetimeFormat = (settings.datetimeFormat ?: "1")
     setDateTimeFormats(datetimeFormat)
     String dMetric
     String pMetric
     String rMetric
-    String tMetric
-    setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
+    String tMetric 
+    String distanceFormat = (settings.distanceFormat ?: "Miles (mph)")
+    String pressureFormat = (settings.pressureFormat ?: "Inches")
+    String rainFormat = (settings.rainFormat ?: "Inches")
+    String tempFormat = (settings.tempFormat ?: "Fahrenheit (°F)")
+    setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)    
     String ddisp_twd
     String ddisp_p
     String ddisp_r
     String mult_twd
     String mult_p
     String mult_r
+    String TWDDecimals = (settings.TWDDecimals ?: "0")
+    String PDecimals = (settings.PDecimals ?: "0")
+    String RDecimals = (settings.PDecimals ?: "0")
     setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
+}
 
-    pollSunRiseSet()
-
+void initialize_poll() {
+    unschedule(pollOWM)
 	Random rand = new Random(now())
 	Integer ssseconds = rand.nextInt(60)
 	Integer minutes2 = rand.nextInt(2)
@@ -932,75 +939,67 @@ void initialize() {
 	Integer dsseconds
 	if(ssseconds < 56 ){
 		dsseconds = ssseconds + 4
-	}else{
+	} else {
 		dsseconds = ssseconds - 60 + 4
 	}
+    String pollIntervalFcst = (settings.pollIntervalForecast ?: "3 Hours")
+    String pollIntervalFcstnight = (settings.pollIntervalForecastnight ?: "3 Hours")
+    String myPoll = pollIntervalFcst
 	if(getDataValue("is_light")=="true") {
-		if(pollIntervalForecast == "Manual Poll Only"){
+        myPoll = pollIntervalFcst
+	} else {
+        myPoll = pollIntervalFcstnight
+    }
+    if(myPoll == "Manual Poll Only"){
 			LOGINFO("MANUAL FORECAST POLLING ONLY")
-		} else {
-			pollIntervalForecast = (settings.pollIntervalForecast ?: "3 Hours").replace(" ", "")
-            LOGINFO("pollIntervalForecast: $pollIntervalForecast")
-			if(pollIntervalForecast=='2Minutes'){
-				schedule("${dsseconds} ${minutes2}/2 * * * ? *", pollOWM)
-			}else if(pollIntervalForecast=='5Minutes'){
-				schedule("${dsseconds} ${minutes5}/5 * * * ? *", pollOWM)
-			}else if(pollIntervalForecast=='10Minutes'){
-				schedule("${dsseconds} ${minutes10}/10 * * * ? *", pollOWM)
-			}else if(pollIntervalForecast=='15Minutes'){
-				schedule("${dsseconds} ${minutes15}/15 * * * ? *", pollOWM)
-			}else if(pollIntervalForecast=='30Minutes'){
-				schedule("${dsseconds} ${minutes30}/30 * * * ? *", pollOWM)
-			}else if(pollIntervalForecast=='1Hour'){
-				schedule("${dsseconds} ${minutes60} * * * ? *", pollOWM)
-			}else if(pollIntervalForecast=='3Hours'){
-				schedule("${dsseconds} ${minutes60} ${hours3}/3 * * ? *", pollOWM)
-			}
+    } else {
+        myPoll = myPoll.replace(" ","")
+        String mySched = "${dsseconds} ${minutes60} ${hours3}/3 * * ? *"
+        LOGINFO("pollInterval: $myPoll")
+        switch(myPoll) {
+            case '2Minutes':
+                mySched = "${dsseconds} ${minutes2}/2 * * * ? *"
+                break
+            case '5Minutes':
+                mySched = "${dsseconds} ${minutes5}/5 * * * ? *"
+                break
+            case '10 Minutes':
+                mySched = "${dsseconds} ${minutes10}/10 * * * ? *"
+                break
+            case '15Minutes':
+                mySched = "${dsseconds} ${minutes15}/15 * * * ? *"
+                break
+            case '30Minutes':
+                mySched = "${dsseconds} ${minutes30}/30 * * * ? *"
+                break
+            case '1Hour':
+                mySched = "${dsseconds} ${minutes60} * * * ? *"
+                break
+            case '3Hours':
+                mySched = "${dsseconds} ${minutes60} ${hours3}/3 * * ? *"
 		}
-	}else{
-		if(pollIntervalForecastnight == "Manual Poll Only"){
-			LOGINFO("MANUAL FORECAST POLLING ONLY")
-		} else {
-			pollIntervalForecastnight = (settings.pollIntervalForecastnight ?: "3 Hours").replace(" ", "")
-            LOGINFO("pollIntervalForecastnight: $pollIntervalForecastnight")
-			if(pollIntervalForecastnight=='2Minutes'){
-				schedule("${dsseconds} ${minutes2}/2 * * * ? *", pollOWM)
-			}else if(pollIntervalForecastnight=='5Minutes'){
-				schedule("${dsseconds} ${minutes5}/5 * * * ? *", pollOWM)
-			}else if(pollIntervalForecastnight=='10Minutes'){
-				schedule("${dsseconds} ${minutes10}/10 * * * ? *", pollOWM)
-			}else if(pollIntervalForecastnight=='15Minutes'){
-				schedule("${dsseconds} ${minutes15}/15 * * * ? *", pollOWM)
-			}else if(pollIntervalForecastnight=='30Minutes'){
-				schedule("${dsseconds} ${minutes30}/30 * * * ? *", pollOWM)
-			}else if(pollIntervalForecastnight=='1Hour'){
-				schedule("${dsseconds} ${minutes60} * * * ? *", pollOWM)
-			}else if(pollIntervalForecastnight=='3Hours'){
-				schedule("${dsseconds} ${minutes60} ${hours3}/3 * * ? *", pollOWM)
-			}
-		}
+        schedule(mySched, pollOWM)
 	}
-	return
 }
 
 public void pollData() {
 	pollOWM()
-    return
 }
+
 // ************************************************************************************************
 
 public void setDateTimeFormats(String formatselector){
     switch(formatselector) {
         case "1": DTFormat = "M/d/yyyy h:mm a";   dateFormat = "M/d/yyyy";   timeFormat = "h:mm a"; break;
         case "2": DTFormat = "M/d/yyyy HH:mm";    dateFormat = "M/d/yyyy";   timeFormat = "HH:mm";  break;
-    	case "3": DTFormat = "MM/dd/yyyy h:mm a"; dateFormat = "MM/dd/yyyy"; timeFormat = "h:mm a"; break;
-    	case "4": DTFormat = "MM/dd/yyyy HH:mm";  dateFormat = "MM/dd/yyyy"; timeFormat = "HH:mm";  break;
-		case "5": DTFormat = "d/M/yyyy h:mm a";   dateFormat = "d/M/yyyy";   timeFormat = "h:mm a"; break;
-    	case "6": DTFormat = "d/M/yyyy HH:mm";    dateFormat = "d/M/yyyy";   timeFormat = "HH:mm";  break;
-    	case "7": DTFormat = "dd/MM/yyyy h:mm a"; dateFormat = "dd/MM/yyyy"; timeFormat = "h:mm a"; break;
+        case "3": DTFormat = "MM/dd/yyyy h:mm a"; dateFormat = "MM/dd/yyyy"; timeFormat = "h:mm a"; break;
+        case "4": DTFormat = "MM/dd/yyyy HH:mm";  dateFormat = "MM/dd/yyyy"; timeFormat = "HH:mm";  break;
+        case "5": DTFormat = "d/M/yyyy h:mm a";   dateFormat = "d/M/yyyy";   timeFormat = "h:mm a"; break;
+        case "6": DTFormat = "d/M/yyyy HH:mm";    dateFormat = "d/M/yyyy";   timeFormat = "HH:mm";  break;
+        case "7": DTFormat = "dd/MM/yyyy h:mm a"; dateFormat = "dd/MM/yyyy"; timeFormat = "h:mm a"; break;
         case "8": DTFormat = "dd/MM/yyyy HH:mm";  dateFormat = "dd/MM/yyyy"; timeFormat = "HH:mm";  break;
-    	case "9": DTFormat = "yyyy/MM/dd HH:mm";  dateFormat = "yyyy/MM/dd"; timeFormat = "HH:mm";  break;
-    	default: DTFormat = "M/d/yyyy h:mm a";  dateFormat = "M/d/yyyy";   timeFormat = "h:mm a"; break;
+        case "9": DTFormat = "yyyy/MM/dd HH:mm";  dateFormat = "yyyy/MM/dd"; timeFormat = "HH:mm";  break;
+        default: DTFormat = "M/d/yyyy h:mm a";  dateFormat = "M/d/yyyy";   timeFormat = "h:mm a"; break;
 	}
     return
 }
@@ -1042,18 +1041,18 @@ public void setDisplayDecimals(TWDDisp, PressDisp, RainDisp) {
         case "2": ddisp_twd = "%3.2f"; mult_twd = "100"; break;
         case "3": ddisp_twd = "%3.3f"; mult_twd = "1000"; break;
         case "4": ddisp_twd = "%3.4f"; mult_twd = "10000"; break;
-       	default: ddisp_twd = "%3.0f"; mult_twd = "1"; break;
+        default: ddisp_twd = "%3.0f"; mult_twd = "1"; break;
 	}
     updateDataValue("ddisp_twd", ddisp_twd)
     updateDataValue("mult_twd", mult_twd)
     switch(PressDisp) {
         case "0": ddisp_p = "%,4.0f"; mult_p = "1"; break;
         case "1": ddisp_p = "%,4.1f"; mult_p = "10"; break;
-        case "2": ddisp_p = "%,4.2f"; mult_p = "100"; break; 
+        case "2": ddisp_p = "%,4.2f"; mult_p = "100"; break;
         case "3": ddisp_p = "%,4.3f"; mult_p = "1000"; break;
         case "4": ddisp_p = "%,4.4f"; mult_p = "10000"; break;
-       	default: ddisp_p = "%,4.0f"; mult_p = "1"; break;
-	}
+        default: ddisp_p = "%,4.0f"; mult_p = "1"; break;
+    }
     updateDataValue("ddisp_p", ddisp_p)
     updateDataValue("mult_p", mult_p)
     switch(RainDisp) {
@@ -1062,7 +1061,7 @@ public void setDisplayDecimals(TWDDisp, PressDisp, RainDisp) {
         case "2": ddisp_r = "%2.2f"; mult_r = "100"; break;
         case "3": ddisp_r = "%2.3f"; mult_r = "1000"; break;
         case "4": ddisp_r = "%2.4f"; mult_r = "10000"; break;
-       	default: ddisp_r = "%2.0f"; mult_r = "1"; break;
+        default: ddisp_r = "%2.0f"; mult_r = "1"; break;
 	}
     updateDataValue("ddisp_r", ddisp_r)
     updateDataValue("mult_r", mult_r)
@@ -1117,7 +1116,7 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 			lux = (l < 10f ? 10l : l.trunc(0) as Long)
 			break
 		case { it < twiStartNextMillis}:
-			bwn = "Fully Night Time" 
+			bwn = "Fully Night Time"
 			lux = 5l
             aFCC = false
 			break
@@ -1127,24 +1126,24 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 			lux = (l < 10f ? 10l : l.trunc(0) as Long)
 			break
 		case { it < noonTimeNextMillis}:
-			bwn = "between sunrise and noon" 
+			bwn = "between sunrise and noon"
 			l = (((localeMillis - sunriseNextMillis) * 10000f) / (noonTimeNextMillis - sunriseNextMillis))
 			lux = (l < 50f ? 50l : l.trunc(0) as Long)
 			break
 		case { it < sunsetNextMillis}:
-			bwn = "between noon and sunset" 
+			bwn = "between noon and sunset"
 			l = (((sunsetNextMillis - localeMillis) * 10000f) / (sunsetNextMillis - noonTimeNextMillis))
 			lux = (l < 50f ? 50l : l.trunc(0) as Long)
 			break
 		case { it < twiEndNextMillis}:
-			bwn = "between sunset and twilight" 
+			bwn = "between sunset and twilight"
 			l = (((twiEndNextMillis - localeMillis) * 50f) / (twiEndNextMillis - sunsetNextMillis))
 			lux = (l < 10f ? 10l : l.trunc(0) as Long)
 			break
 		default:
-			bwn = "Fully Night Time" 
+			bwn = "Fully Night Time"
 			lux = 5l
-			aFCC = false
+            aFCC = false
 			break
 	}
     String cC = condition_id.toString()
@@ -1176,14 +1175,14 @@ def estimateLux(Integer condition_id, Integer cloud)     {
         }
     }
     lux = Math.max(lux, 5)
-	LOGINFO("condition: $cC | condition factor: $cCF | condition text: $cCT| lux: $lux")
+	LOGINFO("estimateLux results: condition: $cC | condition factor: $cCF | condition text: $cCT| lux: $lux")
 	return [lux, bwn]
 }
 
 private Long getEpoch (String aTime) {
 	def tZ = TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
 	def localeTime = new Date().parse("yyyy-MM-dd'T'HH:mm:ssXXX", aTime, tZ)
-	long localeMillis = localeTime.getTime()
+	Long localeMillis = localeTime.getTime()
 	return (localeMillis)
 }
 
@@ -1217,16 +1216,14 @@ void SummaryMessage(Boolean SType, String Slast_poll_date, String Slast_poll_tim
 }
 
 String getImgName(Integer wCode, String iconTOD){
-    LOGINFO("getImgName Input: wCodes: " + wCode.toString() + " is_day: ${iconTOD}")
     LUitem = LUTable.find{ it.id == wCode }
-	LOGINFO("getImgName Result: image: " + "${iconTOD}"=='true' ? (LUitem ? LUitem.Icond : 'na.png') : (LUitem ? LUitem.Iconn : 'na.png'))
+	LOGINFO("getImgName Inputs: " + wCode.toString() + ", " + iconTOD + ";  Result: " + (iconTOD=='true' ? (LUitem ? LUitem.Icond : 'na.png') : (LUitem ? LUitem.Iconn : 'na.png')))
     return ("${iconTOD}"=='true' ? (LUitem ? LUitem.Icond : 'na.png') : (LUitem ? LUitem.Iconn : 'na.png'))
 }
 
-String getCondCode(int cid, String iconTOD){
-    LOGINFO("getCondCode Input: cid: " + cid.toString() + " is_day: ${iconTOD}")
+String getCondCode(Integer cid, String iconTOD){
     LUitem = LUTable.find{ it.id == cid }
-	LOGINFO("getCondCode Result: cod: " + "${iconTOD}"=='true' ? (LUitem ? LUitem.stdIcond : 'na.png') : (LUitem ? LUitem.stdIconn : 'na.png'))
+    LOGINFO("getCondCode Inputs: " + cid.toString() + ", " + iconTOD + ";  Result: " + (iconTOD=='true' ? (LUitem ? LUitem.stdIcond : 'na.png') : (LUitem ? LUitem.stdIconn : 'na.png')))
     return ("${iconTOD}"=='true' ? (LUitem ? LUitem.stdIcond : 'na.png') : (LUitem ? LUitem.stdIconn : 'na.png'))
 }
 
@@ -1273,7 +1270,7 @@ void sendEventPublish(evt)	{
 // 	Purpose: Attribute sent to DB if selected	
     if (settings."${evt.name + "Publish"}") {
 		sendEvent(name: evt.name, value: evt.value, descriptionText: evt.descriptionText, unit: evt.unit, displayed: evt.displayed);
-		LOGINFO("$evt.name") //: $evt.name, $evt.value $evt.unit"
+		LOGINFO("Will publish: $evt.name") //: $evt.name, $evt.value $evt.unit"
     }
 }
 
@@ -1380,7 +1377,7 @@ def updateCheck()
 void updateCheckHandler(resp, data) {
 
 	state.InternalName = "OpenWeatherMap-NWS Alerts Weather Driver"
-    Boolean descTextEnable = settings?.logSet ?: false
+    Boolean descTextEnable = settings.logSet ?: false
 
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
 		def respUD = parseJson(resp.data)
