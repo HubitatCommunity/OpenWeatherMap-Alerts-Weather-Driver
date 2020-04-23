@@ -44,32 +44,21 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 04/20/2020
+   Last Update 04/23/2020
   { Left room below to document version changes...}
 
 
-   V0.0.1   Initial conversion from Dark Sky to OWM                                           - 04/17/2020
-   V0.0.2   Fixed Alerts on myTile and alertTile, Capitalized condition_text                  - 04/17/2020
-   V0.0.3   More fixes on Alerts, mapped condition_code, weatherIcon(s)                       - 04/18/2020
-   V0.0.4   Corrected forecast icon to always be 'day' instead of current time                - 04/18/2020
-   V0.0.5   More code cleanup and optimizations (Thanks @nh.schottfam!)                       - 04/19/2020
+
+
+
+
+   V0.0.7   Numerous bug fixes, better handling where alerts are not available                - 04/23/2020
    V0.0.6   Refactored much of the code, added Hubitat Package Manager compatibility          - 04/20/2020
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   V0.0.5   More code cleanup and optimizations (Thanks @nh.schottfam!)                       - 04/19/2020
+   V0.0.4   Corrected forecast icon to always be 'day' instead of current time                - 04/18/2020
+   V0.0.3   More fixes on Alerts, mapped condition_code, weatherIcon(s)                       - 04/18/2020
+   V0.0.2   Fixed Alerts on myTile and alertTile, Capitalized condition_text                  - 04/17/2020
+   V0.0.1   Initial conversion from Dark Sky to OWM                                           - 04/17/2020
 =========================================================================================================
 **ATTRIBUTES CAUTION**
 The way the 'optional' attributes work:
@@ -84,7 +73,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.0.6'  }
+public static String version()      {  return '0.0.7'  }
 import groovy.transform.Field
 
 metadata {
@@ -426,6 +415,7 @@ void pollOWMHandler(resp, data) {
         updateDataValue('condition_id', owm.current.weather[0].id.toString())
         updateDataValue('condition_code', getCondCode(owm.current.weather[0].id, getDataValue('is_day')))
         updateDataValue('condition_text', owm.current.weather[0].description.capitalize())
+        updateDataValue('OWN_icon', owm.current.weather[0].icon)
 
         updateDataValue('forecast_id', owm.daily[0].weather[0].id.toString())
         updateDataValue('forecast_code', getCondCode(owm.daily[0].weather[0].id, 'true'))
@@ -504,39 +494,44 @@ void pollAlerts() {
 }
 
 void pollAlertsHandler(resp, data) {
-    if(resp.getStatus() != 200 && resp.getStatus() != 207) {
-        LOGWARN('Calling https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed')
-        LOGWARN('Response Status: ' + resp.getStatus())
-	} else {
-        def NWSAlerts = parseJson(resp.data)
-        if(NWSAlerts.features[0] == null) {
-            updateDataValue('noAlert','true')
-            updateDataValue('alert', 'No current weather alerts for this area')
-            updateDataValue('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
-            updateDataValue('alertLink', '<a>' + getDataValue('condition_text') + '</a>')
-            updateDataValue('alertLink2', '<a>' + getDataValue('condition_text') + '</a>')
-            updateDataValue('alertLink3', '<a>' + getDataValue('condition_text') + '</a>')
+    if(alertPublish) {
+        if(resp.getStatus() != 200 && resp.getStatus() != 207) {
+            LOGWARN('Calling https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed')
+            LOGWARN('Response Status: ' + resp.getStatus())
             updateDataValue('possAlert', 'false')
-        } else {
-            updateDataValue('noAlert','false')
-            updateDataValue('alert', NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0])
-            updateDataValue('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
-            updateDataValue('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
-            def String al2 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
-            updateDataValue('alertLink2', al2+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
-            updateDataValue('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
-            updateDataValue('possAlert', 'true')
-        }
+            updateDataValue('noAlert','true')
+            updateDataValue('alert', 'Weather alerts are not available for this area')
+    	} else {
+            def NWSAlerts = parseJson(resp.data)
+            if(NWSAlerts.features[0] == null) {
+                updateDataValue('noAlert','true')
+                updateDataValue('alert', 'No current weather alerts for this area')
+                updateDataValue('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
+                updateDataValue('alertLink', '<a>' + getDataValue('condition_text') + '</a>')
+                updateDataValue('alertLink2', '<a>' + getDataValue('condition_text') + '</a>')
+                updateDataValue('alertLink3', '<a>' + getDataValue('condition_text') + '</a>')
+                updateDataValue('possAlert', 'false')
+            } else {
+                updateDataValue('noAlert','false')
+                updateDataValue('alert', NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0])
+                updateDataValue('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                updateDataValue('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                def String al2 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
+                updateDataValue('alertLink2', al2+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                updateDataValue('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                updateDataValue('possAlert', 'true')
+            }
         //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-        if(alertPublish){ // don't bother setting these values if it's not enabled
-            String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + getDataValue('city') + '</a><br>updated at ' + getDataValue('Summary_last_poll_time') + ' on ' + getDataValue('Summary_last_poll_date') + '.<br>'
-            alertTile+= getDataValue('alertTileLink') + '<br>'
-            alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '\" target=\'_blank\'><img src=' + getDataValue('iconLocation') + 'NWS_240px.png' + ' style=\"height:2.0em;display:inline;\"></a>'
-            updateDataValue('alertTile', alertTile)
-            sendEvent(name: 'alert', value: getDataValue('alert'))
-            sendEvent(name: 'alertTile', value: getDataValue('alertTile'))
-        }
+            if(alertPublish){ // don't bother setting these values if it's not enabled
+                String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + getDataValue('city') + '</a><br>updated at ' + getDataValue('Summary_last_poll_time') + ' on ' + getDataValue('Summary_last_poll_date') + '.<br>'
+                alertTile+= getDataValue('alertTileLink') + '<br>'
+                alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '\" target=\'_blank\'><img src=' + getDataValue('iconLocation') + 'NWS_240px.png' + ' style=\"height:2.0em;display:inline;\"></a>'
+                updateDataValue('alertTile', alertTile)
+                sendEvent(name: 'alert', value: getDataValue('alert'))
+                sendEvent(name: 'alertTile', value: getDataValue('alertTile'))
+            }
         //  >>>>>>>>>> End Built alertTile <<<<<<<<<<
+        }
     }
     return
 }
@@ -601,7 +596,7 @@ void PostPoll() {
     if(dashSharpToolsPublish || dashSmartTilesPublish || rainTodayPublish) { sendEvent(name: 'rainToday', value: getDataValue('rainToday').toBigDecimal(), unit: rMetric) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'weather', value: getDataValue('condition_text')) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'weatherIcon', value: getCondCode(getDataValue('condition_id').toInteger(), getDataValue('is_day'))) }
-    if(dashHubitatOWMPublish) { sendEvent(name: 'weatherIcons', value: getCondCode(getDataValue('condition_id').toInteger(), getDataValue('is_day'))) }
+    if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: getDataValue('OWN_icon')) }
     if(dashHubitatOWMPublish || dashSharpToolsPublish || windPublish) { sendEvent(name: 'wind', value: getDataValue('wind').toBigDecimal(), unit: dMetric) }
     if(dashHubitatOWMPublish) { sendEvent(name: 'windSpeed', value: getDataValue('wind').toBigDecimal(), unit: dMetric) }
     if(dashHubitatOWMPublish) { sendEvent(name: 'windDirection', value: getDataValue('wind_degree').toInteger(), unit: 'DEGREE')   }
@@ -1247,12 +1242,12 @@ void LOGINFO(txt){
 }
 
 void LOGWARN(txt){
-    if(settings.logSet){log.info('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt) }
+    if(settings.logSet){log.warn('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt) }
     return
 }
 
 void LOGERR(txt){
-    if(settings.logSet){log.info('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt) }
+    if(settings.logSet){log.error('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt) }
     return
 }
 
