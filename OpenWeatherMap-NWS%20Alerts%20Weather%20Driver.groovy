@@ -44,13 +44,13 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 04/23/2020
+   Last Update 04/24/2020
   { Left room below to document version changes...}
 
 
 
 
-
+   V0.0.9   Continue to work on improving null handling, various bug fixes                                    - 04/24/2020
    V0.0.8   Numerous bug fixes, better handling where alerts are not available, handelng nulls                - 04/23/2020-2
    V0.0.7   Numerous bug fixes, better handling where alerts are not available                                - 04/23/2020
    V0.0.6   Refactored much of the code, added Hubitat Package Manager compatibility                          - 04/20/2020
@@ -73,7 +73,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.0.8'  }
+public static String version()      {  return '0.0.9'  }
 import groovy.transform.Field
 
 metadata {
@@ -239,7 +239,7 @@ void pollOWMHandler(resp, data) {
         setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
         setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
 
-        fotime = !owm.current.dt ? new Date() : new Date(owm.current.dt * 1000L)
+        fotime = (owm?.current?.dt==null) ? new Date() : new Date(owm.current.dt * 1000L)
         updateDataValue('fotime', fotime.toString())
         futime = new Date()
         updateDataValue('futime', futime.toString())
@@ -272,7 +272,7 @@ void pollOWMHandler(resp, data) {
 // >>>>>>>>>> End Setup Global Variables <<<<<<<<<<
 
 // <<<<<<<<<< Begin Process Standard Weather-Station Variables (Regardless of Forecast Selection)  >>>>>>>>>>
-        BigDecimal t_dew = !owm.current.dew_point ? 0.00 : owm.current.dew_point.toBigDecimal()
+        BigDecimal t_dew = owm?.current?.dew_point==null ? 0.00 : owm.current.dew_point.toBigDecimal()
         if(tMetric == '°F') {
             t_dew = Math.round(t_dew * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {
@@ -280,9 +280,9 @@ void pollOWMHandler(resp, data) {
         }
 
         updateDataValue('dewpoint', t_dew.toString())
-        updateDataValue('humidity', (Math.round((!owm.current.humidity ? 0.00 : owm.current.humidity.toBigDecimal()) * 10) / 10).toString())
+        updateDataValue('humidity', (Math.round((owm?.current?.humidity==null ? 0.00 : owm.current.humidity.toBigDecimal()) * 10) / 10).toString())
 
-        BigDecimal t_press = !owm.current.pressure ? 0.00 : owm.current.pressure.toBigDecimal()
+        BigDecimal t_press = owm?.current?.pressure==null ? 0.00 : owm.current.pressure.toBigDecimal()
         if(pMetric == 'inHg') {
             t_press = Math.round(t_press * 0.029529983071445 * getDataValue('mult_p').toInteger()) / getDataValue('mult_p').toInteger()
         } else {
@@ -290,7 +290,7 @@ void pollOWMHandler(resp, data) {
         }
         updateDataValue('pressure', t_press.toString())
 
-        BigDecimal t_temp = !owm.current.temp ? 0.00 : owm.current.temp.toBigDecimal()
+        BigDecimal t_temp = owm?.current?.temp=null ? 0.00 : owm.current.temp.toBigDecimal()
         if(tMetric == '°F') {
             t_temp = Math.round(t_temp * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {
@@ -300,7 +300,7 @@ void pollOWMHandler(resp, data) {
 
         String w_string_bft
         String w_bft_icon
-        BigDecimal t_ws = !owm.current.wind_speed ? 0.00 : owm.current.wind_speed.toBigDecimal()
+        BigDecimal t_ws = owm?.current?.wind_speed==null ? 0.00 : owm.current.wind_speed.toBigDecimal()
         if(t_ws < 1.0) {
             w_string_bft = 'Calm'; w_bft_icon = 'wb0.png'
         }else if(t_ws < 4.0) {
@@ -331,8 +331,8 @@ void pollOWMHandler(resp, data) {
 	    updateDataValue('wind_string_bft', w_string_bft)
         updateDataValue('wind_bft_icon', w_bft_icon)
 
-        BigDecimal t_wd = !owm.current.wind_speed ? 0.00 : owm.current.wind_speed.toBigDecimal()
-        BigDecimal t_wg = !owm.current.wind_gust ? !owm.current.wind_speed ? 0.00 : owm.current.wind_speed.toBigDecimal() : owm.current.wind_gust
+        BigDecimal t_wd = owm?.current?.wind_speed==null ? 0.00 : owm.current.wind_speed.toBigDecimal()
+        BigDecimal t_wg = owm?.current?.wind_gust==null ? t_wd : owm.current.wind_gust.toBigDecimal()
         if(dMetric == 'MPH') {
             t_wd = Math.round(t_wd * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
             t_wg = Math.round(t_wg * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
@@ -352,7 +352,7 @@ void pollOWMHandler(resp, data) {
         updateDataValue('wind_degree', owm.current.wind_deg.toInteger().toString())	
         String w_cardinal
         String w_direction
-        BigDecimal twb = !owm.current.wind_deg ? 0.00 : owm.current.wind_deg.toBigDecimal()
+        BigDecimal twb = owm?.current?.wind_deg==null ? 0.00 : owm.current.wind_deg.toBigDecimal()
         if(twb < 11.25) {
             w_cardinal = 'N'; w_direction = 'North'
         }else if(twb < 33.75) {
@@ -395,55 +395,57 @@ void pollOWMHandler(resp, data) {
         String s_direction
 // >>>>>>>>>> End Process Standard Weather-Station Variables (Regardless of Forecast Selection)  <<<<<<<<<<	
         
-	    Integer cloudCover = !owm.current.clouds ? 1 : owm.current.clouds <= 1 ? 1 : owm.current.clouds
+	    Integer cloudCover = owm?.current?.clouds==null ? 1 : owm.current.clouds <= 1 ? 1 : owm.current.clouds
         updateDataValue('cloud', cloudCover.toString())
-        updateDataValue('vis', (dMetric!='MPH' ? Math.round(!owm.current.visibility ? 0.01 : owm.current.visibility.toBigDecimal() * 0.001 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger() : Math.round(!owm.current.visibility ? 0.00 : owm.current.visibility.toBigDecimal() * 0.0006213712 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()).toString())
+        updateDataValue('vis', (dMetric!='MPH' ? Math.round(owm?.current?.visibility==null ? 0.01 : owm.current.visibility.toBigDecimal() * 0.001 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger() : Math.round(owm?.current?.visibility==null ? 0.00 : owm.current.visibility.toBigDecimal() * 0.0006213712 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()).toString())
 
-        BigDecimal t_p0 = Math.max((!owm.daily[0].rain ? 0.00 : owm.daily[0].rain==null ? 0.00 : owm.daily[0].rain) + (!owm.daily[0].snow ? 0.00 : owm.daily[0].snow==null ? 0.00 : owm.daily[0].snow), getDataValue('rainToday').toBigDecimal())
-        BigDecimal t_p1 = Math.max((!owm.daily[1].rain ? 0.00 : owm.daily[0].rain==null ? 0.00 : owm.daily[1].rain) + (!owm.daily[1].snow ? 0.00 : owm.daily[1].snow==null ? 0.00 : owm.daily[1].snow), getDataValue('rainToday').toBigDecimal())
-        BigDecimal t_p2 = Math.max((!owm.daily[2].rain ? 0.00 : owm.daily[0].rain==null ? 0.00 : owm.daily[2].rain) + (!owm.daily[2].snow ? 0.00 : owm.daily[2].snow==null ? 0.00 : owm.daily[2].snow), getDataValue('rainToday').toBigDecimal())
-        updateDataValue('rainToday', (Math.round(((rainFormat != 'Inches' ? t_p0 : t_p0 * 0.03937008) * getDataValue('mult_r').toBigDecimal())) / getDataValue('mult_r').toBigDecimal()).toString())
-        updateDataValue('Precip0', (Math.round(((rainFormat != 'Inches' ? t_p0 : t_p0 * 0.03937008) * getDataValue('mult_r').toBigDecimal())) / getDataValue('mult_r').toBigDecimal()).toString())
-        updateDataValue('Precip1', (Math.round(((rainFormat != 'Inches' ? t_p1 : t_p1 * 0.03937008) * getDataValue('mult_r').toBigDecimal())) / getDataValue('mult_r').toBigDecimal()).toString())
-        updateDataValue('Precip2', (Math.round(((rainFormat != 'Inches' ? t_p2 : t_p2 * 0.03937008) * getDataValue('mult_r').toBigDecimal())) / getDataValue('mult_r').toBigDecimal()).toString())
-
-        updateDataValue('condition_id', !owm.current.weather[0].id ? '999' : owm.current.weather[0].id.toString())
+        updateDataValue('condition_id', owm?.current?.weather[0]?.id==null ? '999' : owm.current.weather[0].id.toString())
         updateDataValue('condition_code', getCondCode(getDataValue('condition_id').toInteger(), getDataValue('is_day')))
-        updateDataValue('condition_text', !owm.current.weather[0].description ? 'Unknown' : owm.current.weather[0].description.capitalize())
-        updateDataValue('OWN_icon', !owm.current.weather[0].icon ? (getDataValue('is_day')=='true' ? '50d' : '50n') : owm.current.weather[0].icon)
+        updateDataValue('condition_text', owm?.current?.weather[0]?.description==null ? 'Unknown' : owm.current.weather[0].description.capitalize())
+        updateDataValue('OWN_icon', owm?.current?.weather[0]?.icon==null ? (getDataValue('is_day')=='true' ? '50d' : '50n') : owm.current.weather[0].icon)
 
-        updateDataValue('forecast_id', !owm.daily[0].weather[0].id ? '999' : owm.daily[0].weather[0].id.toString())
+        updateDataValue('forecast_id', owm?.daily[0]?.weather[0]?.id==null ? '999' : owm.daily[0].weather[0].id.toString())
         updateDataValue('forecast_code', getCondCode(getDataValue('forecast_id').toInteger(), 'true'))
-        updateDataValue('forecast_text', !owm.daily[0].weather[0].description ? 'Unknown' : owm.daily[0].weather[0].description.capitalize())
+        updateDataValue('forecast_text', owm?.daily[0]?.weather[0]?.description==null ? 'Unknown' : owm.daily[0].weather[0].description.capitalize())
+
+        BigDecimal t_p0 = (owm?.daily[0]?.rain==null ? 0.00 : owm.daily[0].rain) + (owm?.daily[0]?.snow==null ? 0.00 : owm.daily[0].snow)
+        updateDataValue('rainToday', (Math.round((rainFormat != 'Inches' ? t_p0 : t_p0 * 0.03937008) * getDataValue('mult_r').toInteger()) / getDataValue('mult_r').toInteger()).toString())
+
+        if(threedayTilePublish || precipExtendedPublish) {
+            BigDecimal t_p1 = (owm?.daily[1]?.rain==null ? 0.00 : owm.daily[1].rain) + (owm?.daily[1]?.snow==null ? 0.00 : owm.daily[1].snow)
+            BigDecimal t_p2 = (owm?.daily[2]?.rain==null ? 0.00 : owm.daily[2].rain) + (owm?.daily[2]?.snow==null ? 0.00 : owm.daily[2].snow)
+            updateDataValue('Precip0', (Math.round((rainFormat != 'Inches' ? t_p0 : t_p0 * 0.03937008) * getDataValue('mult_r').toInteger()) / getDataValue('mult_r').toInteger()).toString())
+            updateDataValue('Precip1', (Math.round((rainFormat != 'Inches' ? t_p1 : t_p1 * 0.03937008) * getDataValue('mult_r').toInteger()) / getDataValue('mult_r').toInteger()).toString())
+            updateDataValue('Precip2', (Math.round((rainFormat != 'Inches' ? t_p2 : t_p2 * 0.03937008) * getDataValue('mult_r').toInteger()) / getDataValue('mult_r').toInteger()).toString())
+        }
 
         if(threedayTilePublish) {
-
-            updateDataValue('day1', new Date(owm.daily[1].dt * 1000L).format('EEEE'))
-            updateDataValue('day2', new Date(owm.daily[2].dt * 1000L).format('EEEE'))
+            updateDataValue('day1', owm?.daily[1]?.dt==null ? "" : new Date(owm.daily[1].dt * 1000L).format('EEEE'))
+            updateDataValue('day2', owm?.daily[2]?.dt==null ? "" : new Date(owm.daily[2].dt * 1000L).format('EEEE'))
 
             updateDataValue('is_day1', 'true')
             updateDataValue('is_day2', 'true')
-            updateDataValue('forecast_id1', !owm.daily[1].weather[0].id ? '999' : owm.daily[1].weather[0].id.toString())
+            updateDataValue('forecast_id1', owm?.daily[1]?.weather[0]?.id==null ? '999' : owm.daily[1].weather[0].id.toString())
             updateDataValue('forecast_code1', getCondCode(getDataValue('forecast_id1').toInteger(), 'true'))
-            updateDataValue('forecast_text1', !owm.daily[1].weather[0].description ? 'Unknown' : owm.daily[1].weather[0].description.capitalize())
+            updateDataValue('forecast_text1', owm?.daily[1]?.weather[0]?.description==null ? 'Unknown' : owm.daily[1].weather[0].description.capitalize())
 
-            updateDataValue('forecast_id2', !owm.daily[2].weather[0].id ? '999' : owm.daily[2].weather[0].id.toString())
+            updateDataValue('forecast_id2', owm?.daily[2]?.weather[0]?.id==null ? '999' : owm.daily[2].weather[0].id.toString())
             updateDataValue('forecast_code2', getCondCode(getDataValue('forecast_id2').toInteger(), 'true'))
-            updateDataValue('forecast_text2', !owm.daily[2].weather[0].description ? 'Unknown' : owm.daily[2].weather[0].description.capitalize())
+            updateDataValue('forecast_text2', owm?.daily[2]?.weather[0]?.description==null ? 'Unknown' : owm.daily[2].weather[0].description.capitalize())
 
-            updateDataValue('forecastHigh1', (tMetric=='°F' ? (Math.round(!owm.daily[1].temp.max ? 0.00 : owm.daily[1].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((!owm.daily[1].temp.max ? 0.00 : owm.daily[1].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
-            updateDataValue('forecastHigh2', (tMetric=='°F' ? (Math.round(!owm.daily[2].temp.max ? 0.00 : owm.daily[2].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((!owm.daily[2].temp.max ? 0.00 : owm.daily[2].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastHigh1', (tMetric=='°F' ? (Math.round(owm?.daily[1]?.temp?.max==null ? 0.00 : owm.daily[1].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[1]?.temp?.max==null ? 0.00 : owm.daily[1].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastHigh2', (tMetric=='°F' ? (Math.round(owm?.daily[2]?.temp?.max==null ? 0.00 : owm.daily[2].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[2]?.temp?.max==null ? 0.00 : owm.daily[2].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
 
-            updateDataValue('forecastLow1', (tMetric=='°F' ? (Math.round(!owm.daily[1].temp.min ? 0.00 : owm.daily[1].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((!owm.daily[1].temp.min ? 0.00 : owm.daily[1].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
-            updateDataValue('forecastLow2', (tMetric=='°F' ? (Math.round(!owm.daily[2].temp.min ? 0.00 : owm.daily[2].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((!owm.daily[2].temp.min ? 0.00 : owm.daily[2].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastLow1', (tMetric=='°F' ? (Math.round(owm?.daily[1]?.temp?.min==null ? 0.00 : owm.daily[1].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[1]?.temp?.min==null ? 0.00 : owm.daily[1].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastLow2', (tMetric=='°F' ? (Math.round(owm?.daily[2]?.temp?.min==null ? 0.00 : owm.daily[2].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[2]?.temp?.min==null ? 0.00 : owm.daily[2].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
 
-            updateDataValue('imgName0', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(!owm.daily[0].weather[0].id ? 999 : owm.daily[0].weather[0].id, getDataValue('is_day')) + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
-            updateDataValue('imgName1', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(!owm.daily[1].weather[0].id ? 999 : owm.daily[1].weather[0].id, 'true') + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
-            updateDataValue('imgName2', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(!owm.daily[2].weather[0].id ? 999 : owm.daily[2].weather[0].id, 'true') + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
+            updateDataValue('imgName0', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(owm?.daily[0]?.weather[0]?.id==null ? 999 : owm.daily[0].weather[0].id, getDataValue('is_day')) + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
+            updateDataValue('imgName1', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(owm?.daily[1]?.weather[0]?.id==null ? 999 : owm.daily[1].weather[0].id, 'true') + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
+            updateDataValue('imgName2', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(owm?.daily[2]?.weather[0]?.id==null ? 999 : owm.daily[2].weather[0].id, 'true') + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
         }
 
-        updateDataValue('forecastHigh', (tMetric=='°F' ? (Math.round(!owm.daily[0].temp.max ? 0.00 : owm.daily[0].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((!owm.daily[0].temp.max ? 0.00 : owm.daily[0].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
-        updateDataValue('forecastLow', (tMetric=='°F' ? (Math.round(!owm.daily[0].temp.min ? 0.00 : owm.daily[0].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((!owm.daily[0].temp.min ? 0.00 : owm.daily[0].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+        updateDataValue('forecastHigh', (tMetric=='°F' ? (Math.round(owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+        updateDataValue('forecastLow', (tMetric=='°F' ? (Math.round(owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
 
         if(precipExtendedPublish){
             updateDataValue('rainTomorrow', getDataValue('Precip1'))
@@ -451,13 +453,13 @@ void pollOWMHandler(resp, data) {
         }
 
         updateLux(false)
-        updateDataValue('ultravioletIndex', (!owm.current.uvi ? 0.00 : owm.current.uvi.toBigDecimal()).toString())
+        updateDataValue('ultravioletIndex', (owm?.current?.uvi==null ? 0.00 : owm.current.uvi.toBigDecimal()).toString())
 
         BigDecimal t_fl
         if(tMetric == '°F') {
-            t_fl = Math.round(!owm.current.feels_like ? 0.00 : owm.current.feels_like.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
+            t_fl = Math.round(owm?.current?.feels_like==null ? 0.00 : owm.current.feels_like.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {
-            t_fl = Math.round((!owm.current.feels_like ? 0.00 : owm.current.feels_like.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
+            t_fl = Math.round((owm?.current?.feels_like==null ? 0.00 : owm.current.feels_like.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         }
         updateDataValue('feelsLike', t_fl.toString())
 
@@ -511,7 +513,7 @@ void pollAlertsHandler(resp, data) {
              updateDataValue('possAlert', 'false')
          } else {
              def NWSAlerts = parseJson(resp.data)
-             if(NWSAlerts.features[0] == null) {
+             if(NWSAlerts?.features[0] == null) {
                  updateDataValue('noAlert','true')
                  updateDataValue('alert', 'No current weather alerts for this area')
                  updateDataValue('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
@@ -521,12 +523,12 @@ void pollAlertsHandler(resp, data) {
                  updateDataValue('possAlert', 'false')
              } else {
                  updateDataValue('noAlert','false')
-                 updateDataValue('alert', NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0])
+                 updateDataValue('alert', NWSAlerts?.features[0]?.properties?.event==null ? "No alerts found" : NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0])
                  updateDataValue('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
                  updateDataValue('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
                  def String al2 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
                  updateDataValue('alertLink2', al2+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
-                 updateDataValue('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                 updateDataValue('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>'+NWSAlerts?.features[0]?.properties?.event==null ? "No alerts found" : NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
                  updateDataValue('possAlert', 'true')
              }
          }
@@ -560,8 +562,8 @@ void updateLux(Boolean pollAgain=true) {
 		}
 	}
     def (lux, bwn) = estimateLux(getDataValue('condition_id').toInteger(), getDataValue('cloud').toInteger())
-        updateDataValue('illuminance', !lux ? '0' : lux.toString())
-        updateDataValue('illuminated', String.format('%,4d', !lux ? 0 : lux).toString())
+        updateDataValue('illuminance', (!lux) ? '0' : lux.toString())
+        updateDataValue('illuminated', String.format('%,4d', (!lux) ? 0 : lux).toString())
         updateDataValue('bwn', bwn)
         if(pollAgain) PostPoll()
     return
@@ -770,15 +772,15 @@ void PostPoll() {
             }else if((excess - (ics * 2) + 20) < 0) {
                 removeicons = 2 //remove sunset and sunrise
             }else if((excess - (ics * 3) + 31) < 0) {
-                removeicons = 3 //remove sunset, sunrise, Precip0
+                removeicons = 3 //remove sunset, sunrise, Precip
             }else if((excess - (ics * 4) + 38) < 0) {
-                removeicons = 4 //remove sunset, sunrise, Precip0, Humidity
+                removeicons = 4 //remove sunset, sunrise, Precip, Humidity
             }else if((excess - (ics * 5) + 42) < 0) {
-                removeicons = 5 //remove sunset, sunrise, Precip0, Humidity, Pressure
+                removeicons = 5 //remove sunset, sunrise, Precip, Humidity, Pressure
             }else if((excess - (ics * 6) + 42) < 0) {
-                removeicons = 6 //remove sunset, sunrise, Precip0, Humidity, Pressure, Wind
+                removeicons = 6 //remove sunset, sunrise, Precip, Humidity, Pressure, Wind
             }else if((excess - (ics * 7) + 42) < 0) {
-                removeicons = 7 //remove sunset, sunrise, Precip0, Humidity, Pressure, Wind, condition
+                removeicons = 7 //remove sunset, sunrise, Precip, Humidity, Pressure, Wind, condition
             }else{
                 removeicons = 8 // still need to remove html formatting
             }
@@ -1163,7 +1165,8 @@ def estimateLux(Integer condition_id, Integer cloud)     {
         }
     }
 	lux = (lux * cCF) as Long
-    if(luxjitter){
+    Boolean t_jitter = (!luxjitter) ? false : luxjitter
+    if(t_jitter == true){
         // reduce event variability  code from @nh.schottfam
         if(lux > 1100) {
             Long t0 = (lux/800)
