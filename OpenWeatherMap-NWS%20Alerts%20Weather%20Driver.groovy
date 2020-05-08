@@ -44,12 +44,12 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 04/24/2020
+   Last Update 05/07/2020
   { Left room below to document version changes...}
 
 
 
-
+   V0.1.0   Improved Alert handeling for dashboard tiles, various bug fixes                                   - 05/07/2020
    V0.0.9   Continue to work on improving null handling, various bug fixes                                    - 04/24/2020
    V0.0.8   Numerous bug fixes, better handling where alerts are not available, handelng nulls                - 04/23/2020-2
    V0.0.7   Numerous bug fixes, better handling where alerts are not available                                - 04/23/2020
@@ -73,7 +73,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.0.9'  }
+public static String version()      {  return '0.1.0'  }
 import groovy.transform.Field
 
 metadata {
@@ -247,7 +247,11 @@ void pollOWMHandler(resp, data) {
         updateDataValue('Summary_last_poll_time', futime.format(timeFormat, TimeZone.getDefault()).toString())
         updateDataValue('Summary_last_poll_date', futime.format(dateFormat, TimeZone.getDefault()).toString())
 
-        pollAlerts()
+        if(alertPublish) {
+            pollAlerts()
+        } else {
+            updateDataValue('alert', 'Weather alerts not available for this area')
+        }
         updateDataValue('currDate', new Date().format('yyyy-MM-dd', TimeZone.getDefault()))
         updateDataValue('currTime', new Date().format('HH:mm', TimeZone.getDefault()))
         if(getDataValue('riseTime') <= getDataValue('currTime') && getDataValue('setTime') >= getDataValue('currTime')) {
@@ -481,29 +485,32 @@ void pollOWMHandler(resp, data) {
 
 // <<<<<<<<<< Begin NWS Active Alert Poll Routines >>>>>>>>>>
 void pollAlerts() {
-    if(alertPublish) {
-        def ParamsAlerts
-        ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed' ]
-/*                        ,
+    def ParamsAlerts
+    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',                        ,
                         requestContentType: 'application/json',
-			    	    contentType: 'application/json' ] */
-        LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
-	    asynchttpGet('pollAlertsHandler', ParamsAlerts)
-    } else {
-        updateDataValue('possAlert', 'false')
-        updateDataValue('noAlert','true')
-        updateDataValue('alert', 'Weather alerts are not available for this area')
-    }
+			    	    contentType: 'application/json' ] 
+    LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
+    asynchttpGet('pollAlertsHandler', ParamsAlerts)
+    if(getDataValue('NWSSuccess') == 'false') { pauseExecution(1000); asynchttpGet('pollAlertsHandler', ParamsAlerts) }
+    if(getDataValue('NWSSuccess') == 'false') { pauseExecution(1000); asynchttpGet('pollAlertsHandler', ParamsAlerts) }
+    if(getDataValue('NWSSuccess') == 'false') { pauseExecution(1000); asynchttpGet('pollAlertsHandler', ParamsAlerts) }
     return
 }
 
 // <<<<<<<<<< Begin NWS Active Alert Poll Routines >>>>>>>>>>
 void pollAlertsHandler(resp, data) {
      if(resp.getStatus() != 200 && resp.getStatus() != 207) {
+         updateDataValue('NWSSuccess','false')
+         updateDataValue('alert', 'Weather alerts are not available')
+         updateDataValue('noAlert','true')
+         updateDataValue('possAlert', 'false')
          LOGWARN('Calling https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed')
          LOGWARN('Response Status: ' + resp.getStatus())
      } else {
-         if(resp.data == null) {
+         updateDataValue('NWSSuccess','true')
+         def NWSAlerts = parseJson(resp.data)
+         LOGINFO("NWSAlerts: " + NWSAlerts)
+         if(NWSAlerts == null) {
              updateDataValue('noAlert','true')
              updateDataValue('alert', 'No current weather alerts for this area')
              updateDataValue('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
@@ -512,8 +519,8 @@ void pollAlertsHandler(resp, data) {
              updateDataValue('alertLink3', '<a>' + getDataValue('condition_text') + '</a>')
              updateDataValue('possAlert', 'false')
          } else {
-             def NWSAlerts = parseJson(resp.data)
-             if(NWSAlerts?.features[0] == null) {
+             if(NWSAlerts.features[0]?.properties?.event==null) {
+                 LOGINFO("NWSAlerts.features[0]?.properties?.event: is null.")
                  updateDataValue('noAlert','true')
                  updateDataValue('alert', 'No current weather alerts for this area')
                  updateDataValue('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
@@ -522,24 +529,25 @@ void pollAlertsHandler(resp, data) {
                  updateDataValue('alertLink3', '<a>' + getDataValue('condition_text') + '</a>')
                  updateDataValue('possAlert', 'false')
              } else {
+                 LOGINFO("NWSAlerts.features[0]?.properties?.event: " + NWSAlerts.features[0]?.properties?.event)
                  updateDataValue('noAlert','false')
-                 updateDataValue('alert', NWSAlerts?.features[0]?.properties?.event==null ? "No alerts found" : NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0])
+                 updateDataValue('alert', NWSAlerts.features[0].properties.event.replaceAll('[{}\\[\\]]', '').split(/,/)[0])
                  updateDataValue('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
                  updateDataValue('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
                  def String al2 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
-                 updateDataValue('alertLink2', al2+NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
-                 updateDataValue('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>'+NWSAlerts?.features[0]?.properties?.event==null ? "No alerts found" : NWSAlerts.features[0].properties.event.toString().replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                 updateDataValue('alertLink2', al2+NWSAlerts.features[0].properties.event.replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
+                 updateDataValue('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>'+NWSAlerts.features[0].properties.event.replaceAll('[{}\\[\\]]', '').split(/,/)[0]+'</a>')
                  updateDataValue('possAlert', 'true')
              }
          }
-        //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-             String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + getDataValue('city') + '</a><br>updated at ' + getDataValue('Summary_last_poll_time') + ' on ' + getDataValue('Summary_last_poll_date') + '.<br>'
-             alertTile+= getDataValue('alertTileLink') + '<br>'
-             alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '\" target=\'_blank\'><img src=' + getDataValue('iconLocation') + 'NWS_240px.png' + ' style=\"height:2.0em;display:inline;\"></a>'
-             updateDataValue('alertTile', alertTile)
-             sendEvent(name: 'alert', value: getDataValue('alert'))
-             sendEvent(name: 'alertTile', value: getDataValue('alertTile'))
-        //  >>>>>>>>>> End Built alertTile <<<<<<<<<<
+         //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
+         String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + getDataValue('city') + '</a><br>updated at ' + getDataValue('Summary_last_poll_time') + ' on ' + getDataValue('Summary_last_poll_date') + '.<br>'
+         alertTile+= getDataValue('alertTileLink') + '<br>'
+         alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '\" target=\'_blank\'><img src=' + getDataValue('iconLocation') + 'NWS_240px.png' + ' style=\"height:2.0em;display:inline;\"></a>'
+         updateDataValue('alertTile', alertTile)
+         sendEvent(name: 'alert', value: getDataValue('alert'))
+         sendEvent(name: 'alertTile', value: getDataValue('alertTile'))
+         //  >>>>>>>>>> End Built alertTile <<<<<<<<<<   
      }
     return
 }
@@ -719,7 +727,7 @@ void PostPoll() {
         Boolean gitclose = (getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))
         String iconClose = (gitclose ? '?raw=true' : '')
         String iconCloseStyled = iconClose + '>'
-        Boolean noAlert = (!getDataValue('possAlert') || getDataValue('possAlert')=='' || getDataValue('possAlert')=='false')
+        Boolean noAlert = (!alertPublish) ? true : (!getDataValue('possAlert') || getDataValue('possAlert')=='' || getDataValue('possAlert')=='false')
         String alertStyleOpen = (noAlert ? '' :  '<span>')
         String alertStyleClose = (noAlert ? '<br>' : '</span><br>')
         BigDecimal wgust
@@ -1207,7 +1215,7 @@ void SummaryMessage(Boolean SType, String Slast_poll_date, String Slast_poll_tim
         wSum+= 'Wind: ' + getDataValue('wind_string') + ', gusts: ' + ((windgust < 1.00) ? 'calm. ' : 'up to ' + windgust.toString() + ' ' + dMetric + '. ')
         wSum+= Sprecip
         wSum+= Svis
-        wSum+= ((!getDataValue('alert') || getDataValue('alert')==null) ? '' : ' ' + getDataValue('alert') + '.')
+        wSum+= alertPublish ? ((!getDataValue('alert') || getDataValue('alert')==null) ? '' : ' ' + getDataValue('alert') + '.') : ''
     } else {
         wSum = getDataValue('condition_text') + ' '
         wSum+= ((!SforecastTemp || SforecastTemp=='') ? '. ' : SforecastTemp)
