@@ -49,7 +49,7 @@
 
 
 
-   V0.1.0   Improved Alert handeling for dashboard tiles, various bug fixes                                   - 05/07/2020
+   V0.1.0   Improved Alert handling for dashboard tiles, various bug fixes                                   - 05/07/2020
    V0.0.9   Continue to work on improving null handling, various bug fixes                                    - 04/24/2020
    V0.0.8   Numerous bug fixes, better handling where alerts are not available, handelng nulls                - 04/23/2020-2
    V0.0.7   Numerous bug fixes, better handling where alerts are not available                                - 04/23/2020
