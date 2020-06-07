@@ -44,14 +44,14 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 05/07/2020
+   Last Update 06/06/2020
   { Left room below to document version changes...}
 
 
-
-   V0.1.0   Improved Alert handling for dashboard tiles, various bug fixes                                   - 05/07/2020
+   V0.1.1   Bug fix to exclude minutely and hourly data in poll.                                              - 06/06/2020
+   V0.1.0   Improved Alert handling for dashboard tiles, various bug fixes                                    - 05/07/2020
    V0.0.9   Continue to work on improving null handling, various bug fixes                                    - 04/24/2020
-   V0.0.8   Numerous bug fixes, better handling where alerts are not available, handelng nulls                - 04/23/2020-2
+   V0.0.8   Numerous bug fixes, better handling where alerts are not available, handling nulls                - 04/23/2020-2
    V0.0.7   Numerous bug fixes, better handling where alerts are not available                                - 04/23/2020
    V0.0.6   Refactored much of the code, added Hubitat Package Manager compatibility                          - 04/20/2020
    V0.0.5   More code cleanup and optimizations (Thanks @nh.schottfam!)                                       - 04/19/2020
@@ -73,7 +73,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.1.0'  }
+public static String version()      {  return '0.1.1'  }
 import groovy.transform.Field
 
 metadata {
@@ -220,7 +220,7 @@ void pollOWM() {
         return
     }
     def ParamsOWM
-    ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&mode=json&units=imperial&appid=' + apiKey ]
+    ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + apiKey ]
     LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
 	asynchttpGet('pollOWMHandler', ParamsOWM)
     return
@@ -229,7 +229,7 @@ void pollOWM() {
 void pollOWMHandler(resp, data) {
     LOGINFO('Polling OpenWeatherMap.org')
     if(resp.getStatus() != 200 && resp.getStatus() != 207) {
-        log.warn 'Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&mode=json&units=imperial&appid=' + apiKey
+        log.warn 'Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + apiKey
         log.warn resp.getStatus() + ':' + resp.getErrorMessage()
 	} else {
         def owm = parseJson(resp.data)
@@ -714,9 +714,9 @@ void PostPoll() {
         }else if((my3day.length() + OWMText.length() + 11) < 1025) {
             my3day += OWMIcon2 + '@ ' + getDataValue('Summary_last_poll_time')
         }else if((my3day.length() + OWMText2.length() + 11) < 1025) {
-            my3day += OWMText + ' @ ' + getDataValue('Summary_last_poll_time')
+            my3day += OWMText + ' @ ' + getDataValue('Summary_last_poll_time')
         }else{
-            my3day += 'OpenWeatherMap.org @ ' + getDataValue('Summary_last_poll_time')
+            my3day += 'OpenWeatherMap.org @ ' + getDataValue('Summary_last_poll_time')
         }
         sendEvent(name: 'threedayfcstTile', value: my3day.take(1024))
     }
@@ -746,10 +746,10 @@ void PostPoll() {
         mytexte+= '<span style="font-size:.9em;"><img src=' + getDataValue('iconLocation') + getDataValue('wind_bft_icon') + iconCloseStyled + getDataValue('wind_direction') + ' '
         mytexte+= (getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, getDataValue('wind').toBigDecimal()) + ' ' + dMetric)
         mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + ' ' + dMetric) + '<br>'
-        mytexte+= '<img src=' + getDataValue('iconLocation') + 'wb.png' + iconCloseStyled + String.format(ddisp_p, getDataValue('pressure').toBigDecimal()) + ' ' + pMetric + '     <img src=' + getDataValue('iconLocation') + 'wh.png' + iconCloseStyled
-        mytexte+= getDataValue('humidity') + '%     ' + '<img src=' + getDataValue('iconLocation') + 'wu.png' + iconCloseStyled + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + ' ' + rMetric : 'None') + '<br>'
-        mytexte+= '<img src=' + getDataValue('iconLocation') + 'wsr.png' + iconCloseStyled + getDataValue('localSunrise') + '     <img src=' + getDataValue('iconLocation') + 'wss.png' + iconCloseStyled
-        mytexte+= getDataValue('localSunset') + '     Updated: ' + getDataValue('Summary_last_poll_time')
+        mytexte+= '<img src=' + getDataValue('iconLocation') + 'wb.png' + iconCloseStyled + String.format(ddisp_p, getDataValue('pressure').toBigDecimal()) + ' ' + pMetric + '     <img src=' + getDataValue('iconLocation') + 'wh.png' + iconCloseStyled
+        mytexte+= getDataValue('humidity') + '%     ' + '<img src=' + getDataValue('iconLocation') + 'wu.png' + iconCloseStyled + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + ' ' + rMetric : 'None') + '<br>'
+        mytexte+= '<img src=' + getDataValue('iconLocation') + 'wsr.png' + iconCloseStyled + getDataValue('localSunrise') + '     <img src=' + getDataValue('iconLocation') + 'wss.png' + iconCloseStyled
+        mytexte+= getDataValue('localSunset') + '     Updated: ' + getDataValue('Summary_last_poll_time')
 
         String mytext = mytextb + mytextm1 + mytexte
         if((mytext.length() + OWMIcon.length() + 10) < 1025) {
