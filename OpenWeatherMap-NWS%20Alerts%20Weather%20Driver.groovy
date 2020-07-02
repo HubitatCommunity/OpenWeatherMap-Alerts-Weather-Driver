@@ -44,10 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 06/06/2020
+   Last Update 07/02/2020
   { Left room below to document version changes...}
 
-
+   V0.1.2   Bug fix sync MyTile and weatherSummary tiles upon alert update.                                   - 07/02/2020
    V0.1.1   Bug fix to exclude minutely and hourly data in poll.                                              - 06/06/2020
    V0.1.0   Improved Alert handling for dashboard tiles, various bug fixes                                    - 05/07/2020
    V0.0.9   Continue to work on improving null handling, various bug fixes                                    - 04/24/2020
@@ -73,7 +73,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.1.1'  }
+public static String version()      {  return '0.1.2'  }
 import groovy.transform.Field
 
 metadata {
@@ -247,11 +247,6 @@ void pollOWMHandler(resp, data) {
         updateDataValue('Summary_last_poll_time', futime.format(timeFormat, TimeZone.getDefault()).toString())
         updateDataValue('Summary_last_poll_date', futime.format(dateFormat, TimeZone.getDefault()).toString())
 
-        if(alertPublish) {
-            pollAlerts()
-        } else {
-            updateDataValue('alert', 'Weather alerts not available for this area')
-        }
         updateDataValue('currDate', new Date().format('yyyy-MM-dd', TimeZone.getDefault()))
         updateDataValue('currTime', new Date().format('HH:mm', TimeZone.getDefault()))
         if(getDataValue('riseTime') <= getDataValue('currTime') && getDataValue('setTime') >= getDataValue('currTime')) {
@@ -277,7 +272,7 @@ void pollOWMHandler(resp, data) {
 
 // <<<<<<<<<< Begin Process Standard Weather-Station Variables (Regardless of Forecast Selection)  >>>>>>>>>>
         BigDecimal t_dew = owm?.current?.dew_point==null ? 0.00 : owm.current.dew_point.toBigDecimal()
-        if(tMetric == '°F') {
+        if(getDataValue('tMetric') == '°F') {
             t_dew = Math.round(t_dew * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {
             t_dew = Math.round((t_dew - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
@@ -287,7 +282,7 @@ void pollOWMHandler(resp, data) {
         updateDataValue('humidity', (Math.round((owm?.current?.humidity==null ? 0.00 : owm.current.humidity.toBigDecimal()) * 10) / 10).toString())
 
         BigDecimal t_press = owm?.current?.pressure==null ? 0.00 : owm.current.pressure.toBigDecimal()
-        if(pMetric == 'inHg') {
+        if(getDataValue('pMetric') == 'inHg') {
             t_press = Math.round(t_press * 0.029529983071445 * getDataValue('mult_p').toInteger()) / getDataValue('mult_p').toInteger()
         } else {
             t_press = Math.round(t_press * getDataValue('mult_p').toInteger()) / getDataValue('mult_p').toInteger()
@@ -295,7 +290,7 @@ void pollOWMHandler(resp, data) {
         updateDataValue('pressure', t_press.toString())
 
         BigDecimal t_temp = owm?.current?.temp=null ? 0.00 : owm.current.temp.toBigDecimal()
-        if(tMetric == '°F') {
+        if(getDataValue('tMetric') == '°F') {
             t_temp = Math.round(t_temp * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {
             t_temp = Math.round((t_temp - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
@@ -337,13 +332,13 @@ void pollOWMHandler(resp, data) {
 
         BigDecimal t_wd = owm?.current?.wind_speed==null ? 0.00 : owm.current.wind_speed.toBigDecimal()
         BigDecimal t_wg = owm?.current?.wind_gust==null ? t_wd : owm.current.wind_gust.toBigDecimal()
-        if(dMetric == 'MPH') {
+        if(getDataValue('dMetric') == 'MPH') {
             t_wd = Math.round(t_wd * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
             t_wg = Math.round(t_wg * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
-        } else if(dMetric == 'KPH') {
+        } else if(getDataValue('dMetric') == 'KPH') {
             t_wd = Math.round(t_wd * 1.609344 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
             t_wg = Math.round(t_wg * 1.609344 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
-        } else if(dMetric == 'knots') {
+        } else if(getDataValue('dMetric') == 'knots') {
             t_wd = Math.round(t_wd * 0.868976 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
             t_wg = Math.round(t_wg * 0.868976 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {  //  this leave only m/s
@@ -394,14 +389,14 @@ void pollOWMHandler(resp, data) {
         }
         updateDataValue('wind_direction', w_direction)
         updateDataValue('wind_cardinal', w_cardinal)	
-        updateDataValue('wind_string', w_string_bft + ' from the ' + getDataValue('wind_direction') + (getDataValue('wind').toBigDecimal() < 1.0 ? '': ' at ' + String.format(ddisp_twd, getDataValue('wind').toBigDecimal()) + ' ' + dMetric))
+        updateDataValue('wind_string', w_string_bft + ' from the ' + getDataValue('wind_direction') + (getDataValue('wind').toBigDecimal() < 1.0 ? '': ' at ' + String.format(getDataValue('ddisp_twd'), getDataValue('wind').toBigDecimal()) + ' ' + getDataValue('dMetric')))
         String s_cardinal
         String s_direction
 // >>>>>>>>>> End Process Standard Weather-Station Variables (Regardless of Forecast Selection)  <<<<<<<<<<	
         
 	    Integer cloudCover = owm?.current?.clouds==null ? 1 : owm.current.clouds <= 1 ? 1 : owm.current.clouds
         updateDataValue('cloud', cloudCover.toString())
-        updateDataValue('vis', (dMetric!='MPH' ? Math.round(owm?.current?.visibility==null ? 0.01 : owm.current.visibility.toBigDecimal() * 0.001 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger() : Math.round(owm?.current?.visibility==null ? 0.00 : owm.current.visibility.toBigDecimal() * 0.0006213712 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()).toString())
+        updateDataValue('vis', (getDataValue('dMetric')!='MPH' ? Math.round(owm?.current?.visibility==null ? 0.01 : owm.current.visibility.toBigDecimal() * 0.001 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger() : Math.round(owm?.current?.visibility==null ? 0.00 : owm.current.visibility.toBigDecimal() * 0.0006213712 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()).toString())
 
         updateDataValue('condition_id', owm?.current?.weather[0]?.id==null ? '999' : owm.current.weather[0].id.toString())
         updateDataValue('condition_code', getCondCode(getDataValue('condition_id').toInteger(), getDataValue('is_day')))
@@ -437,19 +432,19 @@ void pollOWMHandler(resp, data) {
             updateDataValue('forecast_code2', getCondCode(getDataValue('forecast_id2').toInteger(), 'true'))
             updateDataValue('forecast_text2', owm?.daily[2]?.weather[0]?.description==null ? 'Unknown' : owm.daily[2].weather[0].description.capitalize())
 
-            updateDataValue('forecastHigh1', (tMetric=='°F' ? (Math.round(owm?.daily[1]?.temp?.max==null ? 0.00 : owm.daily[1].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[1]?.temp?.max==null ? 0.00 : owm.daily[1].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
-            updateDataValue('forecastHigh2', (tMetric=='°F' ? (Math.round(owm?.daily[2]?.temp?.max==null ? 0.00 : owm.daily[2].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[2]?.temp?.max==null ? 0.00 : owm.daily[2].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastHigh1', (getDataValue('tMetric')=='°F' ? (Math.round(owm?.daily[1]?.temp?.max==null ? 0.00 : owm.daily[1].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[1]?.temp?.max==null ? 0.00 : owm.daily[1].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastHigh2', (getDataValue('tMetric')=='°F' ? (Math.round(owm?.daily[2]?.temp?.max==null ? 0.00 : owm.daily[2].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[2]?.temp?.max==null ? 0.00 : owm.daily[2].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
 
-            updateDataValue('forecastLow1', (tMetric=='°F' ? (Math.round(owm?.daily[1]?.temp?.min==null ? 0.00 : owm.daily[1].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[1]?.temp?.min==null ? 0.00 : owm.daily[1].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
-            updateDataValue('forecastLow2', (tMetric=='°F' ? (Math.round(owm?.daily[2]?.temp?.min==null ? 0.00 : owm.daily[2].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[2]?.temp?.min==null ? 0.00 : owm.daily[2].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastLow1', (getDataValue('tMetric')=='°F' ? (Math.round(owm?.daily[1]?.temp?.min==null ? 0.00 : owm.daily[1].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[1]?.temp?.min==null ? 0.00 : owm.daily[1].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+            updateDataValue('forecastLow2', (getDataValue('tMetric')=='°F' ? (Math.round(owm?.daily[2]?.temp?.min==null ? 0.00 : owm.daily[2].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[2]?.temp?.min==null ? 0.00 : owm.daily[2].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
 
             updateDataValue('imgName0', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(owm?.daily[0]?.weather[0]?.id==null ? 999 : owm.daily[0].weather[0].id, getDataValue('is_day')) + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
             updateDataValue('imgName1', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(owm?.daily[1]?.weather[0]?.id==null ? 999 : owm.daily[1].weather[0].id, 'true') + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
             updateDataValue('imgName2', '<img class="centerImage" src=' + getDataValue('iconLocation') + getImgName(owm?.daily[2]?.weather[0]?.id==null ? 999 : owm.daily[2].weather[0].id, 'true') + (((getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))) ? '?raw=true' : '') + '>')
         }
 
-        updateDataValue('forecastHigh', (tMetric=='°F' ? (Math.round(owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
-        updateDataValue('forecastLow', (tMetric=='°F' ? (Math.round(owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+        updateDataValue('forecastHigh', (getDataValue('tMetric')=='°F' ? (Math.round(owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
+        updateDataValue('forecastLow', (getDataValue('tMetric')=='°F' ? (Math.round(owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()) : (Math.round((owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger())).toString())
 
         if(precipExtendedPublish){
             updateDataValue('rainTomorrow', getDataValue('Precip1'))
@@ -460,13 +455,18 @@ void pollOWMHandler(resp, data) {
         updateDataValue('ultravioletIndex', (owm?.current?.uvi==null ? 0.00 : owm.current.uvi.toBigDecimal()).toString())
 
         BigDecimal t_fl
-        if(tMetric == '°F') {
+        if(getDataValue('tMetric') == '°F') {
             t_fl = Math.round(owm?.current?.feels_like==null ? 0.00 : owm.current.feels_like.toBigDecimal() * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         } else {
             t_fl = Math.round((owm?.current?.feels_like==null ? 0.00 : owm.current.feels_like.toBigDecimal() - 32) / 1.8 * getDataValue('mult_twd').toInteger()) / getDataValue('mult_twd').toInteger()
         }
         updateDataValue('feelsLike', t_fl.toString())
 
+        if(alertPublish) {
+            pollAlerts()
+        } else {
+            updateDataValue('alert', 'Weather alerts not available for this area')
+        }
 // >>>>>>>>>> End Setup Forecast Variables <<<<<<<<<<
 
 	    // <<<<<<<<<< Begin Icon Processing  >>>>>>>>>>
@@ -549,6 +549,8 @@ void pollAlertsHandler(resp, data) {
          sendEvent(name: 'alertTile', value: getDataValue('alertTile'))
          //  >>>>>>>>>> End Built alertTile <<<<<<<<<<   
      }
+    buildweatherSummary()
+    buildMyText()
     return
 }
 // >>>>>>>>>> End NWS Active Alert Poll Routines <<<<<<<<<<
@@ -600,21 +602,21 @@ void PostPoll() {
 /*  Capability Data Elements */
 	sendEvent(name: 'humidity', value: getDataValue('humidity').toBigDecimal(), unit: '%')
     sendEvent(name: 'illuminance', value: getDataValue('illuminance').toInteger(), unit: 'lx')
-    sendEvent(name: 'pressure', value: getDataValue('pressure').toBigDecimal(), unit: pMetric)
-	sendEvent(name: 'pressured', value: String.format(ddisp_p, getDataValue('pressure').toBigDecimal()), unit: pMetric)
-	sendEvent(name: 'temperature', value: getDataValue('temperature').toBigDecimal(), unit: tMetric)
+    sendEvent(name: 'pressure', value: getDataValue('pressure').toBigDecimal(), unit: getDataValue('pMetric'))
+	sendEvent(name: 'pressured', value: String.format(getDataValue('ddisp_p'), getDataValue('pressure').toBigDecimal()), unit: getDataValue('pMetric'))
+	sendEvent(name: 'temperature', value: getDataValue('temperature').toBigDecimal(), unit: getDataValue('tMetric'))
     sendEvent(name: 'ultravioletIndex', value: getDataValue('ultravioletIndex').toBigDecimal(), unit: 'uvi')
-    sendEvent(name: 'feelsLike', value: getDataValue('feelsLike').toBigDecimal(), unit: tMetric)
+    sendEvent(name: 'feelsLike', value: getDataValue('feelsLike').toBigDecimal(), unit: getDataValue('tMetric'))
 
 /*  'Required for Dashboards' Data Elements */
     if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'city', value: getDataValue('city')) }
     if(dashSharpToolsPublish) { sendEvent(name: 'forecastIcon', value: getCondCode(getDataValue('condition_id').toInteger(), getDataValue('is_day'))) }
-    if(dashSharpToolsPublish || dashSmartTilesPublish || rainTodayPublish) { sendEvent(name: 'rainToday', value: getDataValue('rainToday').toBigDecimal(), unit: rMetric) }
+    if(dashSharpToolsPublish || dashSmartTilesPublish || rainTodayPublish) { sendEvent(name: 'rainToday', value: getDataValue('rainToday').toBigDecimal(), unit: getDataValue('rMetric')) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'weather', value: getDataValue('condition_text')) }
     if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'weatherIcon', value: getCondCode(getDataValue('condition_id').toInteger(), getDataValue('is_day'))) }
     if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: getDataValue('OWN_icon')) }
-    if(dashHubitatOWMPublish || dashSharpToolsPublish || windPublish) { sendEvent(name: 'wind', value: getDataValue('wind').toBigDecimal(), unit: dMetric) }
-    if(dashHubitatOWMPublish) { sendEvent(name: 'windSpeed', value: getDataValue('wind').toBigDecimal(), unit: dMetric) }
+    if(dashHubitatOWMPublish || dashSharpToolsPublish || windPublish) { sendEvent(name: 'wind', value: getDataValue('wind').toBigDecimal(), unit: getDataValue('dMetric')) }
+    if(dashHubitatOWMPublish) { sendEvent(name: 'windSpeed', value: getDataValue('wind').toBigDecimal(), unit: getDataValue('dMetric')) }
     if(dashHubitatOWMPublish) { sendEvent(name: 'windDirection', value: getDataValue('wind_degree').toInteger(), unit: 'DEGREE')   }
 
 /*  Selected optional Data Elements */
@@ -622,13 +624,13 @@ void PostPoll() {
     sendEventPublish(name: 'cloud', value: getDataValue('cloud').toInteger(), unit: '%')
     sendEventPublish(name: 'condition_code', value: getDataValue('condition_code'))
     sendEventPublish(name: 'condition_text', value: getDataValue('condition_text'))
-    sendEventPublish(name: 'dewpoint', value: getDataValue('dewpoint').toBigDecimal(), unit: tMetric)
+    sendEventPublish(name: 'dewpoint', value: getDataValue('dewpoint').toBigDecimal(), unit: getDataValue('tMetric'))
 
     sendEventPublish(name: 'forecast_code', value: getDataValue('forecast_code'))
     sendEventPublish(name: 'forecast_text', value: getDataValue('forecast_text'))
     if(fcstHighLowPublish){ // don't bother setting these values if it's not enabled
-        sendEvent(name: 'forecastHigh', value: getDataValue('forecastHigh').toBigDecimal(), unit: tMetric)
-    	sendEvent(name: 'forecastLow', value: getDataValue('forecastLow').toBigDecimal(), unit: tMetric)
+        sendEvent(name: 'forecastHigh', value: getDataValue('forecastHigh').toBigDecimal(), unit: getDataValue('tMetric'))
+    	sendEvent(name: 'forecastLow', value: getDataValue('forecastLow').toBigDecimal(), unit: getDataValue('tMetric'))
     }
     sendEventPublish(name: 'illuminated', value: getDataValue('illuminated') + ' lx')
     sendEventPublish(name: 'is_day', value: getDataValue('is_day'))
@@ -639,26 +641,18 @@ void PostPoll() {
     }
 
     if(precipExtendedPublish){ // don't bother setting these values if it's not enabled
-        sendEvent(name: 'rainDayAfterTomorrow', value: getDataValue('rainDayAfterTomorrow').toBigDecimal(), unit: rMetric)	
-    	sendEvent(name: 'rainTomorrow', value: getDataValue('rainTomorrow').toBigDecimal(), unit: rMetric)
+        sendEvent(name: 'rainDayAfterTomorrow', value: getDataValue('rainDayAfterTomorrow').toBigDecimal(), unit: getDataValue('rMetric'))	
+    	sendEvent(name: 'rainTomorrow', value: getDataValue('rainTomorrow').toBigDecimal(), unit: getDataValue('rMetric'))
     }
-    sendEventPublish(name: 'vis', value: Math.round(getDataValue('vis').toBigDecimal() * getDataValue('mult_twd').toBigDecimal()) / getDataValue('mult_twd').toBigDecimal(), unit: (dMetric=='MPH' ? 'miles' : 'kilometers'))
+    sendEventPublish(name: 'vis', value: Math.round(getDataValue('vis').toBigDecimal() * getDataValue('mult_twd').toBigDecimal()) / getDataValue('mult_twd').toBigDecimal(), unit: (getDataValue('dMetric')=='MPH' ? 'miles' : 'kilometers'))
     sendEventPublish(name: 'wind_degree', value: getDataValue('wind_degree').toInteger(), unit: 'DEGREE')
     sendEventPublish(name: 'wind_direction', value: getDataValue('wind_direction'))
     sendEventPublish(name: 'wind_cardinal', value: getDataValue('wind_cardinal'))
-    sendEventPublish(name: 'wind_gust', value: getDataValue('wind_gust').toBigDecimal(), unit: dMetric)
+    sendEventPublish(name: 'wind_gust', value: getDataValue('wind_gust').toBigDecimal(), unit: getDataValue('dMetric'))
     sendEventPublish(name: 'wind_string', value: getDataValue('wind_string'))
-
-    //  <<<<<<<<<< Begin Built Weather Summary text >>>>>>>>>>
-    String mtprecip = 'There has been ' + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + (rMetric == 'in' ? ' inches' : ' millimeters') + ' of ' : ' no ') + ' precipitation today. '
-    if(weatherSummaryPublish){ // don't bother setting these values if it's not enabled
-		String Summary_forecastTemp = ' with a high of ' + String.format(ddisp_twd, getDataValue('forecastHigh').toBigDecimal()) + tMetric + ' and a low of ' + String.format(ddisp_twd, getDataValue('forecastLow').toBigDecimal()) + tMetric + '. '
-		String Summary_precip = 'There has been ' + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + (rMetric == 'in' ? ' inches' : ' millimeters') + ' of ' : ' no ') + 'precipitation today. '
-        LOGINFO('Summary_precip: ' + Summary_precip)
-		String Summary_vis = 'Visibility is around ' + String.format(ddisp_twd, getDataValue('vis').toBigDecimal()) + (dMetric=='MPH' ? ' miles.' : ' kilometers.')
-        SummaryMessage(summaryType, getDataValue('Summary_last_poll_date'), getDataValue('Summary_last_poll_time'), Summary_forecastTemp, Summary_precip, Summary_vis)
-    }
-//  >>>>>>>>>> End Built Weather Summary text <<<<<<<<<<
+    
+    buildweatherSummary()
+    
     String OWMIcon = '<a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank"><img src=' + getDataValue('iconLocation') + 'OWM.png style="height:2em;"></a>'
     String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank"><img src=' + getDataValue('iconLocation') + 'OWM.png style="height:2em;"></a>'
     String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
@@ -683,27 +677,27 @@ void PostPoll() {
         my3day += '</tr>'
         my3day += '<tr>'
         my3day += '<td style="text-align:right">Now:</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + '</td>'
         my3day += '<td>' + getDataValue('forecast_text1') + '</td>'
 	    my3day += '<td>' + getDataValue('forecast_text2') + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
         my3day += '<td style="text-align:right">Low:</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastLow').toBigDecimal()) + tMetric + '</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastLow1').toBigDecimal()) + tMetric + '</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastLow2').toBigDecimal()) + tMetric + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastLow').toBigDecimal()) + getDataValue('tMetric') + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastLow1').toBigDecimal()) + getDataValue('tMetric') + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastLow2').toBigDecimal()) + getDataValue('tMetric') + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
         my3day += '<td style="text-align:right">High:</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastHigh').toBigDecimal()) + tMetric + '</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastHigh1').toBigDecimal()) + tMetric + '</td>'
-        my3day += '<td>' + String.format(ddisp_twd, getDataValue('forecastHigh2').toBigDecimal()) + tMetric + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastHigh').toBigDecimal()) + getDataValue('tMetric') + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastHigh1').toBigDecimal()) + getDataValue('tMetric') + '</td>'
+        my3day += '<td>' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastHigh2').toBigDecimal()) + getDataValue('tMetric') + '</td>'
         my3day += '</tr>'
         my3day += '<tr>'
         my3day += '<td style="text-align:right">Precip:</td>'
-        my3day += '<td>' + (getDataValue('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('Precip0').toBigDecimal()) + ' ' + rMetric : 'None') + '</td>'
-        my3day += '<td>' + (getDataValue('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('Precip1').toBigDecimal()) + ' ' + rMetric : 'None') + '</td>'
-        my3day += '<td>' + (getDataValue('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('Precip2').toBigDecimal()) + ' ' + rMetric : 'None') + '</td>'
+        my3day += '<td>' + (getDataValue('Precip0').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('Precip0').toBigDecimal()) + ' ' + getDataValue('rMetric') : 'None') + '</td>'
+        my3day += '<td>' + (getDataValue('Precip1').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('Precip1').toBigDecimal()) + ' ' + getDataValue('rMetric') : 'None') + '</td>'
+        my3day += '<td>' + (getDataValue('Precip2').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('Precip2').toBigDecimal()) + ' ' + getDataValue('rMetric') : 'None') + '</td>'
         my3day += '</tr>'
         my3day += '</table>'
         LOGINFO('my3day character length: ' + my3day.length() + '; OWMIcon length: ' + OWMIcon.length() + '; OWMIcon2 length: ' + OWMIcon2.length() + '; OWMText length: ' + OWMText.length())
@@ -721,8 +715,27 @@ void PostPoll() {
         sendEvent(name: 'threedayfcstTile', value: my3day.take(1024))
     }
 //  >>>>>>>>>> End Built 3dayfcstTile <<<<<<<<<<
+    buildMyText()
+}
+void buildweatherSummary() {
+    //  <<<<<<<<<< Begin Built Weather Summary text >>>>>>>>>>
+    String mtprecip = 'There has been ' + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('rainToday').toBigDecimal()) + (getDataValue('rMetric') == 'in' ? ' inches' : ' millimeters') + ' of ' : ' no ') + ' precipitation today. '
+    if(weatherSummaryPublish){ // don't bother setting these values if it's not enabled
+		String Summary_forecastTemp = ' with a high of ' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastHigh').toBigDecimal()) + getDataValue('tMetric') + ' and a low of ' + String.format(getDataValue('ddisp_twd'), getDataValue('forecastLow').toBigDecimal()) + getDataValue('tMetric') + '. '
+		String Summary_precip = 'There has been ' + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('rainToday').toBigDecimal()) + (getDataValue('rMetric') == 'in' ? ' inches' : ' millimeters') + ' of ' : ' no ') + 'precipitation today. '
+        LOGINFO('Summary_precip: ' + Summary_precip)
+		String Summary_vis = 'Visibility is around ' + String.format(getDataValue('ddisp_twd'), getDataValue('vis').toBigDecimal()) + (getDataValue('dMetric')=='MPH' ? ' miles.' : ' kilometers.')
+        SummaryMessage(summaryType, getDataValue('Summary_last_poll_date'), getDataValue('Summary_last_poll_time'), Summary_forecastTemp, Summary_precip, Summary_vis)
+    }
+//  >>>>>>>>>> End Built Weather Summary text <<<<<<<<<<
+}
+// >>>>>>>>>> End Post-Poll Routines <<<<<<<<<<
+void buildMyText() {
+    //  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
+    String OWMIcon = '<a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank"><img src=' + getDataValue('iconLocation') + 'OWM.png style="height:2em;"></a>'
+    String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank"><img src=' + getDataValue('iconLocation') + 'OWM.png style="height:2em;"></a>'
+    String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
 
-//  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
     if(myTilePublish){ // don't bother setting these values if it's not enabled
         Boolean gitclose = (getDataValue('iconLocation').toLowerCase().contains('://github.com/')) && (getDataValue('iconLocation').toLowerCase().contains('/blob/master/'))
         String iconClose = (gitclose ? '?raw=true' : '')
@@ -741,13 +754,13 @@ void PostPoll() {
         String mytextm1 = getDataValue('condition_text') + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue('alertLink')) + alertStyleClose
         String mytextm2 = getDataValue('condition_text') + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue('alertLink2')) + alertStyleClose
         String mytextm3 = getDataValue('condition_text') + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue('alertLink3')) + alertStyleClose
-        String mytexte = String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + '<img src=' + getDataValue('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline;">'
-        mytexte+= ' Feels like ' + String.format(ddisp_twd, getDataValue('feelsLike').toBigDecimal()) + tMetric + '<br></span>'
+        String mytexte = String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + '<img src=' + getDataValue('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline;">'
+        mytexte+= ' Feels like ' + String.format(getDataValue('ddisp_twd'), getDataValue('feelsLike').toBigDecimal()) + getDataValue('tMetric') + '<br></span>'
         mytexte+= '<span style="font-size:.9em;"><img src=' + getDataValue('iconLocation') + getDataValue('wind_bft_icon') + iconCloseStyled + getDataValue('wind_direction') + ' '
-        mytexte+= (getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, getDataValue('wind').toBigDecimal()) + ' ' + dMetric)
-        mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + ' ' + dMetric) + '<br>'
-        mytexte+= '<img src=' + getDataValue('iconLocation') + 'wb.png' + iconCloseStyled + String.format(ddisp_p, getDataValue('pressure').toBigDecimal()) + ' ' + pMetric + '     <img src=' + getDataValue('iconLocation') + 'wh.png' + iconCloseStyled
-        mytexte+= getDataValue('humidity') + '%     ' + '<img src=' + getDataValue('iconLocation') + 'wu.png' + iconCloseStyled + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + ' ' + rMetric : 'None') + '<br>'
+        mytexte+= (getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(getDataValue('ddisp_twd'), getDataValue('wind').toBigDecimal()) + ' ' + getDataValue('dMetric'))
+        mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(getDataValue('ddisp_twd'), wgust) + ' ' + getDataValue('dMetric')) + '<br>'
+        mytexte+= '<img src=' + getDataValue('iconLocation') + 'wb.png' + iconCloseStyled + String.format(getDataValue('ddisp_p'), getDataValue('pressure').toBigDecimal()) + ' ' + getDataValue('pMetric') + '     <img src=' + getDataValue('iconLocation') + 'wh.png' + iconCloseStyled
+        mytexte+= getDataValue('humidity') + '%     ' + '<img src=' + getDataValue('iconLocation') + 'wu.png' + iconCloseStyled + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('rainToday').toBigDecimal()) + ' ' + getDataValue('rMetric') : 'None') + '<br>'
         mytexte+= '<img src=' + getDataValue('iconLocation') + 'wsr.png' + iconCloseStyled + getDataValue('localSunrise') + '     <img src=' + getDataValue('iconLocation') + 'wss.png' + iconCloseStyled
         mytexte+= getDataValue('localSunset') + '     Updated: ' + getDataValue('Summary_last_poll_time')
 
@@ -755,9 +768,9 @@ void PostPoll() {
         if((mytext.length() + OWMIcon.length() + 10) < 1025) {
             mytext+= '<br>' + OWMIcon + '</span>'
         } else if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
-                mytext+= '<br>' + OWMIcon2 + '</span>'
+            mytext+= '<br>' + OWMIcon2 + '</span>'
         } else if((mytext.length() + OWMText.length() + 10) < 1025) {
-                    mytext+= '<br>' + OWMText + '</span>'
+            mytext+= '<br>' + OWMText + '</span>'
         } else {
             mytext = mytextb + mytextm2 + mytexte
             if((mytext.length() + OWMIcon.length() + 10) < 1025) {
@@ -796,15 +809,15 @@ void PostPoll() {
                 LOGDEBUG('myTile exceeds 1,024 characters (' + mytext.length() + ') ... removing last ' + (removeicons + 1).toString() + ' icons.')
                 mytext = '<span>' + getDataValue('city') + '<br>'
                 mytext+= getDataValue('condition_text') + (noAlert ? '' : ' | ') + alertStyleOpen + (noAlert ? '' : getDataValue('alert')) + alertStyleClose + '<br>'
-                mytext+= String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + (removeicons < 7 ? '<img src=' + getDataValue('condition_icon_url') + iconClose + ' style=\"height:2.0em;display:inline;\">' : '')
-                mytext+= ' Feels like ' + String.format(ddisp_twd, getDataValue('feelsLike').toBigDecimal()) + tMetric + '<br></span>'
+                mytext+= String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + (removeicons < 7 ? '<img src=' + getDataValue('condition_icon_url') + iconClose + ' style=\"height:2.0em;display:inline;\">' : '')
+                mytext+= ' Feels like ' + String.format(getDataValue('ddisp_twd'), getDataValue('feelsLike').toBigDecimal()) + getDataValue('tMetric') + '<br></span>'
                 mytext+= '<span style="font-size:.8em;">' + (removeicons < (raintoday ? 7 : 6) ? '<img src=' + getDataValue('iconLocation') + getDataValue('wind_bft_icon') + iconCloseStyled : '') + getDataValue('wind_direction') + ' '
                 mytext+= (removeicons < 6 ? '<img src=' + getDataValue('iconLocation') + getDataValue('wind_bft_icon') + iconCloseStyled : '') + getDataValue('wind_direction') + ' '
-                mytext+= (getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, getDataValue('wind').toBigDecimal()) + ' ' + dMetric)
-                mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + ' ' + dMetric) + '<br>'
-                mytext+= (removeicons < 5 ? '<img src=' + getDataValue('iconLocation') + 'wb.png' + iconCloseStyled : 'Bar: ') + String.format(ddisp_p, getDataValue('pressure').toBigDecimal()) + ' ' + pMetric + '  '
+                mytext+= (getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(getDataValue('ddisp_twd'), getDataValue('wind').toBigDecimal()) + ' ' + getDataValue('dMetric'))
+                mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(getDataValue('ddisp_twd'), wgust) + ' ' + getDataValue('dMetric')) + '<br>'
+                mytext+= (removeicons < 5 ? '<img src=' + getDataValue('iconLocation') + 'wb.png' + iconCloseStyled : 'Bar: ') + String.format(getDataValue('ddisp_p'), getDataValue('pressure').toBigDecimal()) + ' ' + getDataValue('pMetric') + '  '
                 mytext+= (removeicons < 4 ? '<img src=' + getDataValue('iconLocation') + 'wh.png' + iconCloseStyled : ' | Hum: ') + getDataValue('humidity') + '%  '
-                mytext+= (removeicons < 3 ? '<img src=' + getDataValue('iconLocation') + 'wu.png' + iconCloseStyled : ' | Precip: ') + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + ' ' + rMetric : '') + '<br>'
+                mytext+= (removeicons < 3 ? '<img src=' + getDataValue('iconLocation') + 'wu.png' + iconCloseStyled : ' | Precip: ') + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('rainToday').toBigDecimal()) + ' ' + getDataValue('rMetric') : '') + '<br>'
                 mytext+= (removeicons < 2 ? '<img src=' + getDataValue('iconLocation') + 'wsr.png' + iconCloseStyled : 'Sunrise: ') + getDataValue('localSunrise') + '  '
                 mytext+= (removeicons < 1 ? '<img src=' + getDataValue('iconLocation') + 'wss.png' + iconCloseStyled : ' | Sunset: ') + getDataValue('localSunset')
                 mytext+= '     Updated ' + getDataValue('Summary_last_poll_time') + '</span>'
@@ -812,12 +825,12 @@ void PostPoll() {
                 LOGINFO('myTile still exceeds 1,024 characters (' + mytext.length() + ') ... removing all formatting.')
                 mytext = getDataValue('city') + '<br>'
                 mytext+= getDataValue('condition_text') + (noAlert ? '' : ' | ') + (noAlert ? '' : getDataValue('alert')) + '<br>'
-                mytext+= String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + ' Feels like ' + String.format(ddisp_twd, getDataValue('feelsLike').toBigDecimal()) + tMetric + '<br>'
+                mytext+= String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + ' Feels like ' + String.format(getDataValue('ddisp_twd'), getDataValue('feelsLike').toBigDecimal()) + getDataValue('tMetric') + '<br>'
                 mytext+= getDataValue('wind_direction') + ' '
-                mytext+= getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, getDataValue('wind').toBigDecimal()) + ' ' + dMetric
-                mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + ' ' + dMetric) + '<br>'
-                mytext+= 'Bar: ' + String.format(ddisp_p, getDataValue('pressure').toBigDecimal()) + ' ' + pMetric
-                mytext+= ' | Hum: ' + getDataValue('humidity') + '%  ' + ' | Precip: ' + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, getDataValue('rainToday').toBigDecimal()) + ' ' + rMetric : '') + '<br>'
+                mytext+= getDataValue('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(getDataValue('ddisp_twd'), getDataValue('wind').toBigDecimal()) + ' ' + getDataValue('dMetric')
+                mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(getDataValue('ddisp_twd'), wgust) + ' ' + getDataValue('dMetric')) + '<br>'
+                mytext+= 'Bar: ' + String.format(getDataValue('ddisp_p'), getDataValue('pressure').toBigDecimal()) + ' ' + getDataValue('pMetric')
+                mytext+= ' | Hum: ' + getDataValue('humidity') + '%  ' + ' | Precip: ' + (getDataValue('rainToday').toBigDecimal() > 0 ? String.format(getDataValue('ddisp_r'), getDataValue('rainToday').toBigDecimal()) + ' ' + getDataValue('rMetric') : '') + '<br>'
                 mytext+= 'Sunrise: ' + getDataValue('localSunrise') + ' | Sunset:' + getDataValue('localSunset') + ' |  Updated:' + getDataValue('Summary_last_poll_time')
                 if(mytext.length() > 1024) {
                     LOGINFO('myTile even still exceeds 1,024 characters (' + mytext.length() + ') ... truncating.')
@@ -829,8 +842,6 @@ void PostPoll() {
     }
 //  >>>>>>>>>> End Built mytext <<<<<<<<<<
 }
-// >>>>>>>>>> End Post-Poll Routines <<<<<<<<<<
-
 public void refresh() {
     updateLux(true)
     return
@@ -1025,6 +1036,7 @@ public void setMeasurementMetrics(distFormat, pressFormat, precipFormat, temptFo
     } else {
         dMetric = 'm/s'
     }
+    updateDataValue('dMetric', dMetric)
     if(pressFormat == 'Millibar') {
         pMetric = 'MBAR'
     } else if(pressFormat == 'Inches') {
@@ -1032,16 +1044,19 @@ public void setMeasurementMetrics(distFormat, pressFormat, precipFormat, temptFo
     } else {
         pMetric = 'hPa'
     }
+    updateDataValue('pMetric', pMetric)
     if(precipFormat == 'Millimeters') {
         rMetric = 'mm'
     } else {
         rMetric = 'in'
     }
+    updateDataValue('rMetric', rMetric)
     if(temptFormat == 'Fahrenheit (°F)') {
         tMetric = '°F'
     } else {
         tMetric = '°C'
     }
+    updateDataValue('tMetric', tMetric)
     return
 }
 
@@ -1210,17 +1225,17 @@ void SummaryMessage(Boolean SType, String Slast_poll_date, String Slast_poll_tim
         wSum = 'Weather summary for ' + getDataValue('city') + ' updated at ' + Slast_poll_time + ' on ' + Slast_poll_date + '. '
         wSum+= getDataValue('condition_text')
         wSum+= (!SforecastTemp || SforecastTemp=='') ? '. ' : SforecastTemp
-        wSum+= 'Humidity is ' + getDataValue('humidity') + '% and the temperature is ' + String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + '. '
-        wSum+= 'The temperature feels like it is ' + String.format(ddisp_twd, getDataValue('feelsLike').toBigDecimal()) + tMetric + '. '
-        wSum+= 'Wind: ' + getDataValue('wind_string') + ', gusts: ' + ((windgust < 1.00) ? 'calm. ' : 'up to ' + windgust.toString() + ' ' + dMetric + '. ')
+        wSum+= 'Humidity is ' + getDataValue('humidity') + '% and the temperature is ' + String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + '. '
+        wSum+= 'The temperature feels like it is ' + String.format(getDataValue('ddisp_twd'), getDataValue('feelsLike').toBigDecimal()) + getDataValue('tMetric') + '. '
+        wSum+= 'Wind: ' + getDataValue('wind_string') + ', gusts: ' + ((windgust < 1.00) ? 'calm. ' : 'up to ' + windgust.toString() + ' ' + getDataValue('dMetric') + '. ')
         wSum+= Sprecip
         wSum+= Svis
         wSum+= alertPublish ? ((!getDataValue('alert') || getDataValue('alert')==null) ? '' : ' ' + getDataValue('alert') + '.') : ''
     } else {
         wSum = getDataValue('condition_text') + ' '
         wSum+= ((!SforecastTemp || SforecastTemp=='') ? '. ' : SforecastTemp)
-        wSum+= ' Humidity: ' + getDataValue('humidity') + '%. Temperature: ' + String.format(ddisp_twd, getDataValue('temperature').toBigDecimal()) + tMetric + '. '
-        wSum+= getDataValue('wind_string') + ', gusts: ' + ((windgust == 0.00) ? 'calm. ' : 'up to ' + windgust + dMetric + '.')
+        wSum+= ' Humidity: ' + getDataValue('humidity') + '%. Temperature: ' + String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + '. '
+        wSum+= getDataValue('wind_string') + ', gusts: ' + ((windgust == 0.00) ? 'calm. ' : 'up to ' + windgust + getDataValue('dMetric') + '.')
 	}
     wSum = wSum.take(1024)
     sendEvent(name: 'weatherSummary', value: wSum)
