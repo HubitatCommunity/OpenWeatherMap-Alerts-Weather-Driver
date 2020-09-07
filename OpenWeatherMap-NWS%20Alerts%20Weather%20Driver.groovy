@@ -47,7 +47,7 @@
    Last Update 09/07/2020
   { Left room below to document version changes...}
 
-   V0.1.5   Added new weather tile									      - 09/07/2020
+   V0.1.5   Added new weather tile                                                                            - 09/07/2020
    V0.1.4   Bug fix for NullPointerException on line 580                                                      - 09/07/2020
    V0.1.3   Improved Alert handling for dashboard tiles, again, various bug fixes                             - 09/05/2020
    V0.1.2   Bug fix sync MyTile and weatherSummary tiles upon alert update.                                   - 07/02/2020
