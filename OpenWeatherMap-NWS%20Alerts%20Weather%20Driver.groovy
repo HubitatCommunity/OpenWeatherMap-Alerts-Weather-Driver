@@ -44,9 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 09/04/2020
+   Last Update 09/07/2020
   { Left room below to document version changes...}
 
+   V0.1.4   Bug fix for NullPointerException on line 580                                                      - 09/07/2020
    V0.1.3   Improved Alert handling for dashboard tiles, again, various bug fixes                             - 09/05/2020
    V0.1.2   Bug fix sync MyTile and weatherSummary tiles upon alert update.                                   - 07/02/2020
    V0.1.1   Bug fix to exclude minutely and hourly data in poll.                                              - 06/06/2020
@@ -74,7 +75,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.1.3'  }
+public static String version()      {  return '0.1.4'  }
 import groovy.transform.Field
 
 metadata {
@@ -486,6 +487,7 @@ void pollOWMHandler(resp, data) {
 
 // <<<<<<<<<< Begin NWS Active Alert Poll Routines >>>>>>>>>>
 void pollAlerts() {
+    if(getDataValue('alertFails')==null) {updateDataValue('alertFails','0')}
     Integer pollTimeout = settings.pollIntervalStation == '1 Minute' ? 15 : 30
     def ParamsAlerts
     ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon +'&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
