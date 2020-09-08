@@ -811,7 +811,7 @@ void PostPoll() {
         mywtile += '<td></td>'
         mywtile += '<td>' + 'Now: ' + String.format(getDataValue('ddisp_twd'), getDataValue('temperature').toBigDecimal()) + getDataValue('tMetric') + '<br>' + 'Feels: ' + String.format(getDataValue('ddisp_twd'), getDataValue('feelsLike').toBigDecimal()) + getDataValue('tMetric') + '</td>'
         mywtile += '<td><img src=' + getDataValue('iconLocation') + 'wsr.png' + iconCloseStyled + ' ' + (getDataValue('localSunrise')) + '</td>'
-        mywtile += '<td><img src=' + getDataValue('iconLocation') + 'wsr.png' + iconCloseStyled + ' ' + (getDataValue('localSunset')) + '</td>'
+        mywtile += '<td><img src=' + getDataValue('iconLocation') + 'wss.png' + iconCloseStyled + ' ' + (getDataValue('localSunset')) + '</td>'
         mywtile += '</tr>'				
         mywtile += '</table>'
         LOGINFO('mywtile character length: ' + mywtile.length() + '; OWMIcon length: ' + OWMIcon.length() + '; OWMIcon2 length: ' + OWMIcon2.length() + '; OWMText length: ' + OWMText.length())
