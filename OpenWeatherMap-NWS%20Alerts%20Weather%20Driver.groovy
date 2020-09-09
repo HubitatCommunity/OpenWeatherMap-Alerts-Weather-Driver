@@ -49,7 +49,7 @@
 
    V0.1.7   Added new weather tile
    V0.1.6   Restoring 'certainty' to weather.gov alert poll                                                   - 09/08/2020
-   V0.1.5   Removed 'certainty' from weather.gov alert poll													  - 09/08/2020																 
+   V0.1.5   Removed 'certainty' from weather.gov alert poll                                                   - 09/08/2020																 
    V0.1.4   Bug fix for NullPointerException on line 580                                                      - 09/07/2020
    V0.1.3   Improved Alert handling for dashboard tiles, again, various bug fixes                             - 09/05/2020
    V0.1.2   Bug fix sync MyTile and weatherSummary tiles upon alert update.                                   - 07/02/2020
