@@ -47,8 +47,9 @@
    Last Update 09/09/2020
   { Left room below to document version changes...}
 
-   V0.1.6   Added new weather tile                                                                            - 09/09/2020
-   V0.1.5   Removed 'certainty' from weather.gov alert poll                                                   - 09/08/2020
+   V0.1.7   Added new weather tile
+   V0.1.6   Restoring 'certainty' to weather.gov alert poll                                                   - 09/08/2020
+   V0.1.5   Removed 'certainty' from weather.gov alert poll													  - 09/08/2020																 
    V0.1.4   Bug fix for NullPointerException on line 580                                                      - 09/07/2020
    V0.1.3   Improved Alert handling for dashboard tiles, again, various bug fixes                             - 09/05/2020
    V0.1.2   Bug fix sync MyTile and weatherSummary tiles upon alert update.                                   - 07/02/2020
@@ -77,7 +78,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.1.6'  }
+public static String version()      {  return '0.1.7'  }
 import groovy.transform.Field
 
 metadata {
@@ -495,11 +496,11 @@ void pollAlerts() {
     if(getDataValue('alertFails')==null) {updateDataValue('alertFails','0')}
     Integer pollTimeout = settings.pollIntervalStation == '1 Minute' ? 15 : 30
     def ParamsAlerts
-    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
-                    requestContentType:'application/json',
-                    contentType:'application/json',
-                    timeout: pollTimeout
-                   ]
+    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon +'&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+			requestContentType: 'application/json',
+			contentType: 'application/json',
+            timeout: pollTimeout,
+			]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
 
     try {
