@@ -499,7 +499,7 @@ void pollAlerts() {
     ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
                     requestContentType:'application/json',
                     contentType:'application/json',
-        timeout: pollTimeout
+                    timeout: pollTimeout
                    ]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
 
