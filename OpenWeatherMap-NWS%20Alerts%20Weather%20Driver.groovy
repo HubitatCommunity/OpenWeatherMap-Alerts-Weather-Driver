@@ -496,11 +496,11 @@ void pollAlerts() {
     if(getDataValue('alertFails')==null) {updateDataValue('alertFails','0')}
     Integer pollTimeout = settings.pollIntervalStation == '1 Minute' ? 15 : 30
     def ParamsAlerts
-    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon +'&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
-			requestContentType: 'application/json',
-			contentType: 'application/json',
-            timeout: pollTimeout,
-			]
+    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+                    requestContentType:'application/json',
+                    contentType:'application/json',
+        timeout: pollTimeout
+                   ]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
 
     try {
