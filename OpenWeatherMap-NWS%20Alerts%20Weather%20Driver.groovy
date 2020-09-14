@@ -446,7 +446,7 @@ void pollOWMHandler(resp, data) {
             myUpdData('Precip2', (Math.round((myGetData(sRMETR) == 'in' ? t_p2 * 0.03937008 : t_p2) * mult_r) / mult_r).toString())
         }
 
-        if(owmDaily && threedayTilePublish || myTile2Publish) {
+        if(owmDaily && (threedayTilePublish || myTile2Publish)) {
             myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date(owmDaily[1].dt * 1000L).format('EEEE'))
             myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date(owmDaily[2].dt * 1000L).format('EEEE'))
 
