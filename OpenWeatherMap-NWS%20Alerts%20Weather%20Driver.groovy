@@ -44,10 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 09/13/2020
+   Last Update 09/14/2020
   { Left room below to document version changes...}
 
-   V0.1.8   Re-worked Alerts to not be dependent on api.weather.gov returning a valid response code           - 09/13/2020
+   V0.1.8   Re-worked Alerts to not be dependent on api.weather.gov returning a valid response code           - 09/14/2020
    V0.1.7   Remove most DB accesses and string cleanup (by @nh.schottfam)                                     - 09/12/2020   
    V0.1.6   Restoring 'certainty' to weather.gov alert poll                                                   - 09/08/2020   
    V0.1.5   Removed 'certainty' from weather.gov alert poll                                                   - 09/08/2020   
