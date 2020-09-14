@@ -44,9 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 09/12/2020
+   Last Update 09/13/2020
   { Left room below to document version changes...}
 
+   V0.1.8   Re-worked Alerts to not be dependent on api.weather.gov returning a valid response code           - 09/13/2020
    V0.1.7   Remove most DB accesses and string cleanup (by @nh.schottfam)                                     - 09/12/2020   
    V0.1.6   Restoring 'certainty' to weather.gov alert poll                                                   - 09/08/2020   
    V0.1.5   Removed 'certainty' from weather.gov alert poll                                                   - 09/08/2020   
@@ -78,7 +79,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.1.7'  }
+public static String version()      {  return '0.1.8'  }
 import groovy.transform.Field
 
 metadata {
@@ -538,51 +539,56 @@ void pollAlerts() {
     if(ifreInstalled()) { updated(); return }
     if(myGetData('alertFails')==null) {myUpdData('alertFails','0')}
     Integer pollTimeout = settings.pollIntervalStation == '1 Minute' ? 15 : 30
-    def ParamsAlerts
-    ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+    Map result = null
+/*  for testing weather alerts in a different area
+    altLat = 30.6941667
+    altLon = -88.0430556 
+*/
+    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
                     requestContentType:'application/json',
                     contentType:'application/json',
                     timeout: pollTimeout
                    ]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
-
     try {
-        httpGet(ParamsAlerts) { NWSAlert ->
-            String curAl=NWSAlert.data.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
-            LOGINFO('NWS Alert - response: ' + NWSAlert.status + '; Alert: ' + curAl)
-            if(NWSAlert.status == 200) {
-                myUpdData('alertFails', '0')
-                try {
-                                if(curAl==null) {
-					clearAlerts()
-				} else {
-					myUpdData('noAlert','false')
-					myUpdData('alert', curAl)
-					myUpdData('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
-					myUpdData('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+myGetData('alert')+sACB)
-					String al3 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
-					myUpdData('alertLink2', al3 + myGetData('alert')+sACB)
-					myUpdData('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>' + myGetData('alert')+sACB)
-					myUpdData('possAlert', 'true')
-				}
-				myUpdData('alertFails', '0')
-				
-                } catch (e) {
-                    alertErr('NWS Alert Poll Failed Three Times. This is a NWS API website issue.')
-               }
-            } else {
-                alertErr('NWS Alert Poll Failed Three Times. This is a NWS API website issue.')
-            }
+        httpGet(ParamsAlerts) { response -> result = response.data }
+    }
+        catch (SocketTimeoutException e) {
+            alertErr('NWS Alerts - Connection to weather.gov API timed out. This is a NWS API website issue, the website is busy.')
         }
-    } 
     
-    catch (SocketTimeoutException e) {
-        alertErr('NWS Alerts - Connection to weather.gov API timed out. This is a NWS API website issue, the website is busy.')
+        catch (e) {
+            alertErr('NWS Alerts - Connection to weather.gov API failed. This is a NWS API website issue, the website is down or not responding as expected.')
+        }
+
+    if(result!=null) {
+//    if(response?.status == 200) {
+        String curAl = result.features[0]?.properties?.event==null ? null: result.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
+        LOGINFO('NWS Alert - response: ' + result + '; Alert: ' + curAl)
+        myUpdData('alertFails', '0')
+        try {
+            if(curAl==null) {
+                clearAlerts()
+            } else {
+                myUpdData('noAlert','false')
+                myUpdData('alert', curAl)
+                myUpdData('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
+                myUpdData('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+myGetData('alert')+sACB)
+                String al3 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
+                myUpdData('alertLink2', al3 + myGetData('alert')+sACB)
+                myUpdData('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>' + myGetData('alert')+sACB)
+                myUpdData('possAlert', 'true')
+            }
+            myUpdData('alertFails', '0')
+            
+        } catch (e) {
+            alertErr('NWS Alert Poll Failed Three Times. This is a NWS API website issue.')
+        }
+    } else {
+        alertErr('NWS Alert Poll Failed Three Times. This is a NWS API website issue.')
     }
+
     
-    catch (e) {
-        alertErr('NWS Alerts - Connection to weather.gov API failed. This is a NWS API website issue, the website is down or not responding as expected.')
-    }
     //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
     String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + myGetData('city') + '</a><br>updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
     alertTile+= myGetData('alertTileLink') + sBR
