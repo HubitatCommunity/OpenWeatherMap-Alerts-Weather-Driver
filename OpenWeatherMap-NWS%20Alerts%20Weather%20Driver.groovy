@@ -44,9 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 09/16/2020
+   Last Update 09/21/2020
   { Left room below to document version changes...}
 
+   V0.2.0   Added forecast High/Low temp attributes for tomorrow and day-after-tomorrow                       - 09/21/2020
    V0.1.9   Removing 'severity' and 'certainty' restrictions from alerts poll                                 - 09/16/2020
    V0.1.8   Re-worked Alerts to not be dependent on api.weather.gov returning a valid response code           - 09/13/2020
    V0.1.7   Remove most DB accesses and string cleanup (by @nh.schottfam)                                     - 09/12/2020   
@@ -80,7 +81,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.1.9'  }
+public static String version()      {  return '0.2.0'  }
 import groovy.transform.Field
 
 metadata {
@@ -126,7 +127,11 @@ metadata {
 
 //fcstHighLow
 		attribute 'forecastHigh', 'number'
+		attribute 'forecastHigh+1', 'number'
+		attribute 'forecastHigh+2', 'number'        
 		attribute 'forecastLow', 'number'
+		attribute 'forecastLow+1', 'number'
+		attribute 'forecastLow+2', 'number'        
 
 // controlled with localSunrise
 		attribute 'tw_begin', 'string'
@@ -447,7 +452,7 @@ void pollOWMHandler(resp, data) {
             myUpdData('Precip2', (Math.round((myGetData(sRMETR) == 'in' ? t_p2 * 0.03937008 : t_p2) * mult_r) / mult_r).toString())
         }
 
-        if(owmDaily && (threedayTilePublish || myTile2Publish)) {
+        if(owmDaily && (threedayTilePublish || myTile2Publish || fcstHighLowPublish)) {
             myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date(owmDaily[1].dt * 1000L).format('EEEE'))
             myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date(owmDaily[2].dt * 1000L).format('EEEE'))
 
@@ -471,10 +476,8 @@ void pollOWMHandler(resp, data) {
             myUpdData('imgName1', '<img class="centerImage" src=' + myGetData(sICON) + getImgName(owm?.daily[1]?.weather[0]?.id==null ? 999 : owm.daily[1].weather[0].id, 'true') + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK) + '>')
             myUpdData('imgName2', '<img class="centerImage" src=' + myGetData(sICON) + getImgName(owm?.daily[2]?.weather[0]?.id==null ? 999 : owm.daily[2].weather[0].id, 'true') + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK) + '>')
         }
-
         myUpdData('forecastHigh', (myGetData(sTMETR)=='°F' ? (Math.round(owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() * mult_twd) / mult_twd) : (Math.round((owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() - 32) / 1.8 * mult_twd) / mult_twd)).toString())
         myUpdData('forecastLow', (myGetData(sTMETR)=='°F' ? (Math.round(owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() * mult_twd) / mult_twd) : (Math.round((owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() - 32) / 1.8 * mult_twd) / mult_twd)).toString())
-
         if(precipExtendedPublish){
             myUpdData('rainTomorrow', myGetData('Precip1'))
             myUpdData('rainDayAfterTomorrow', myGetData('Precip2'))
@@ -573,11 +576,11 @@ void pollAlerts() {
             } else {
                 myUpdData('noAlert','false')
                 myUpdData('alert', curAl)
-                myUpdData('alertTileLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
-                myUpdData('alertLink', '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+myGetData('alert')+sACB)
-                String al3 = '<a style="font-style:italic;color:red;" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
+                myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
+                myUpdData('alertLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+myGetData('alert')+sACB)
+                String al3 = '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
                 myUpdData('alertLink2', al3 + myGetData('alert')+sACB)
-                myUpdData('alertLink3', '<a style="font-style:italic;color:red;" target=\'_blank\'>' + myGetData('alert')+sACB)
+                myUpdData('alertLink3', '<a style="font-style:italic;color:red" target=\'_blank\'>' + myGetData('alert')+sACB)
                 myUpdData('possAlert', 'true')
             }
             myUpdData('alertFails', '0')
@@ -807,7 +810,11 @@ void PostPoll() {
     sendEventPublish(name: 'forecast_text', value: myGetData('forecast_text'))
     if(fcstHighLowPublish){ // don't bother setting these values if it's not enabled
         sendEvent(name: 'forecastHigh', value: myGetData('forecastHigh').toBigDecimal(), unit: myGetData(sTMETR))
+        sendEvent(name: 'forecastHigh+1', value: myGetData('forecastHigh1').toBigDecimal(), unit: myGetData(sTMETR))
+        sendEvent(name: 'forecastHigh+2', value: myGetData('forecastHigh2').toBigDecimal(), unit: myGetData(sTMETR))        
     	sendEvent(name: 'forecastLow', value: myGetData('forecastLow').toBigDecimal(), unit: myGetData(sTMETR))
+    	sendEvent(name: 'forecastLow+1', value: myGetData('forecastLow1').toBigDecimal(), unit: myGetData(sTMETR))
+    	sendEvent(name: 'forecastLow+2', value: myGetData('forecastLow2').toBigDecimal(), unit: myGetData(sTMETR))        
     }
     sendEventPublish(name: 'illuminated', value: myGetData('illuminated') + ' lx')
     sendEventPublish(name: 'is_day', value: myGetData('is_day'))
@@ -916,8 +923,8 @@ void buildweatherSummary() {
 // >>>>>>>>>> End Post-Poll Routines <<<<<<<<<<
 void buildMyText() {
     //  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
-    String OWMIcon = '<a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank"><img src=' + myGetData(sICON) + 'OWM.png style="height:2em;"></a>'
-    String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank"><img src=' + myGetData(sICON) + 'OWM.png style="height:2em;"></a>'
+    String OWMIcon = '<a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank"><img src=' + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
+    String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank"><img src=' + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
     String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
 
     if(myTilePublish){ // don't bother setting these values if it's not enabled
@@ -935,12 +942,12 @@ void buildMyText() {
             wgust = myGetData('wind_gust').toBigDecimal()
         }
 
-        String mytextb = '<span style="display:inline;"><a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank">' + myGetData('city') + '</a><br>'
+        String mytextb = '<span style="display:inline"><a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank">' + myGetData('city') + '</a><br>'
         String mytextm1 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
         String mytextm2 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink2')) + alertStyleClose
-        String mytexte = String.format(myGetData('ddisp_twd'), myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + '<img src=' + myGetData('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline;">'
+        String mytexte = String.format(myGetData('ddisp_twd'), myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + '<img src=' + myGetData('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline">'
         mytexte+= ' Feels like ' + String.format(myGetData('ddisp_twd'), myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR) + sBR+sCSPAN
-        mytexte+= '<span style="font-size:.9em;"><img src=' + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
+        mytexte+= '<span style="font-size:.9em"><img src=' + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
         mytexte+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
         mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
         mytexte+= '<img src=' + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '     <img src=' + myGetData(sICON) + 'wh.png' + iconCloseStyled
@@ -995,7 +1002,7 @@ void buildMyText() {
                 mytext+= myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alert')) + alertStyleClose + sBR
                 mytext+= String.format(myGetData('ddisp_twd'), myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + (removeicons < 7 ? '<img src=' + myGetData('condition_icon_url') + iconClose + ' style=\"height:2.0em;display:inline;\">' : sBLK)
                 mytext+= ' Feels like ' + String.format(myGetData('ddisp_twd'), myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR) + sBR+sCSPAN
-                mytext+= '<span style="font-size:.8em;">' + (removeicons < (raintoday ? 7 : 6) ? '<img src=' + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled : sBLK) + myGetData('wind_direction') + sSPC
+                mytext+= '<span style="font-size:.8em">' + (removeicons < (raintoday ? 7 : 6) ? '<img src=' + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled : sBLK) + myGetData('wind_direction') + sSPC
                 mytext+= (removeicons < 6 ? '<img src=' + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled : sBLK) + myGetData('wind_direction') + sSPC
                 mytext+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
                 mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
@@ -1112,7 +1119,7 @@ void initMe() {
     myUpdData('iconType', iconType ? 'true' : 'false')
     String iconLocation = (settings.iconLocation ?: 'https://tinyurl.com/y6xrbhpf/')
     myUpdData(sICON, iconLocation)
-    state.OWM = '<a href="https://openweathermap.org" target="_blank"><img src=' + myGetData(sICON) + 'OWM.png style="height:2em;"></a>'
+    state.OWM = '<a href="https://openweathermap.org" target="_blank"><img src=' + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
     setDateTimeFormats((String)settings.datetimeFormat)
     String distanceFormat = (settings.distanceFormat ?: 'Miles (mph)')
     String pressureFormat = (settings.pressureFormat ?: 'Inches')
