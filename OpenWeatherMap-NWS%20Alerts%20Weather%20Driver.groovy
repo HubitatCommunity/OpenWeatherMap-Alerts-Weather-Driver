@@ -44,9 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 09/22/2020
+   Last Update 09/23/2020
   { Left room below to document version changes...}
 
+   V0.2.2   Removing 'urgency' restrictions from alerts poll                                                  - 09/23/2020
    V0.2.1   Added forecast icon url attributes for tomorrow and day-after-tomorrow                            - 09/22/2020   
    V0.2.0   Added forecast High/Low temp attributes for tomorrow and day-after-tomorrow                       - 09/21/2020
    V0.1.9   Removing 'severity' and 'certainty' restrictions from alerts poll                                 - 09/16/2020
@@ -82,7 +83,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.2.1'  }
+public static String version()      {  return '0.2.2'  }
 import groovy.transform.Field
 
 metadata {
@@ -557,7 +558,7 @@ void pollAlerts() {
     altLat = 47.126230
     altLon = -88.602726
 */
-    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon + '&urgency=unknown,future,expected,immediate', //&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon, // + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
                     requestContentType:'application/json',
                     contentType:'application/json',
                     timeout: pollTimeout
