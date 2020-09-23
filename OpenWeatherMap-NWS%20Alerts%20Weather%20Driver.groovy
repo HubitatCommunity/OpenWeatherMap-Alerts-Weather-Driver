@@ -44,9 +44,10 @@
    on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
    for the specific language governing permissions and limitations under the License.
 
-   Last Update 09/21/2020
+   Last Update 09/22/2020
   { Left room below to document version changes...}
 
+   V0.2.1   Added forecast icon url attributes for tomorrow and day-after-tomorrow                            - 09/22/2020   
    V0.2.0   Added forecast High/Low temp attributes for tomorrow and day-after-tomorrow                       - 09/21/2020
    V0.1.9   Removing 'severity' and 'certainty' restrictions from alerts poll                                 - 09/16/2020
    V0.1.8   Re-worked Alerts to not be dependent on api.weather.gov returning a valid response code           - 09/13/2020
@@ -81,7 +82,7 @@ The way the 'optional' attributes work:
    available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
    attribute you do not want to show.
 */
-public static String version()      {  return '0.2.0'  }
+public static String version()      {  return '0.2.1'  }
 import groovy.transform.Field
 
 metadata {
@@ -132,6 +133,8 @@ metadata {
 		attribute 'forecastLow', 'number'
 		attribute 'forecastLow+1', 'number'
 		attribute 'forecastLow+2', 'number'        
+		attribute 'condition_icon_url1', 'string'
+		attribute 'condition_icon_url2', 'string'        
 
 // controlled with localSunrise
 		attribute 'tw_begin', 'string'
@@ -475,6 +478,12 @@ void pollOWMHandler(resp, data) {
             myUpdData('imgName0', '<img class="centerImage" src=' + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK) + '>')
             myUpdData('imgName1', '<img class="centerImage" src=' + myGetData(sICON) + getImgName(owm?.daily[1]?.weather[0]?.id==null ? 999 : owm.daily[1].weather[0].id, 'true') + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK) + '>')
             myUpdData('imgName2', '<img class="centerImage" src=' + myGetData(sICON) + getImgName(owm?.daily[2]?.weather[0]?.id==null ? 999 : owm.daily[2].weather[0].id, 'true') + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK) + '>')
+        }
+        if(condition_icon_urlPublish) {
+            String imgName1 = getImgName(myGetData('forecast_id1').toInteger(), myGetData('is_day'))
+            String imgName2 = getImgName(myGetData('forecast_id2').toInteger(), myGetData('is_day'))
+            sendEvent(name: 'condition_icon_url1', value: myGetData(sICON) + imgName1 + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK))
+            sendEvent(name: 'condition_icon_url2', value: myGetData(sICON) + imgName2 + (((myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))) ? '?raw=true' : sBLK))
         }
         myUpdData('forecastHigh', (myGetData(sTMETR)=='°F' ? (Math.round(owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() * mult_twd) / mult_twd) : (Math.round((owm?.daily[0]?.temp?.max==null ? 0.00 : owm.daily[0].temp.max.toBigDecimal() - 32) / 1.8 * mult_twd) / mult_twd)).toString())
         myUpdData('forecastLow', (myGetData(sTMETR)=='°F' ? (Math.round(owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() * mult_twd) / mult_twd) : (Math.round((owm?.daily[0]?.temp?.min==null ? 0.00 : owm.daily[0].temp.min.toBigDecimal() - 32) / 1.8 * mult_twd) / mult_twd)).toString())
