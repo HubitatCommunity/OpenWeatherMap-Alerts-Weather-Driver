@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 09/24/2020
+	Last Update 09/27/2020
 	{ Left room below to document version changes...}
 
+	V0.2.4	09/24/2020	Fix to allow for use of multiple virtual devices, More string constant optimizations (by @nh.schottfam)
 	V0.2.3	09/24/2020	More string constant optimizations, and removal of white space characters (by @nh.schottfam)
 	V0.2.2	09/23/2020	Removing 'urgency' restrictions from alerts poll
 	V0.2.1	09/22/2020	Added forecast icon url attributes for tomorrow and day-after-tomorrow
@@ -84,7 +85,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-public static String version()      {  return '0.2.3'  }
+public static String version()      {  return '0.2.4'  }
 import groovy.transform.Field
 
 metadata {
@@ -202,6 +203,11 @@ metadata {
 @Field static final String sBR='<br>'
 @Field static final String sBLK=''
 @Field static final String sSPC=' '
+@Field static final String sCOMMA=','
+@Field static final String sMINUS='-'
+@Field static final String sCOLON=':'
+@Field static final String sZERO='0'
+@Field static final String sDOT='.'
 @Field static final String sICON='iconLocation'
 @Field static final String sTMETR='tMetric'
 @Field static final String sDMETR='dMetric'
@@ -279,7 +285,7 @@ void pollOWMHandler(resp, data) {
     LOGINFO('Polling OpenWeatherMap.org')
     if(resp.getStatus() != 200 && resp.getStatus() != 207) {
 	LOGWARN('Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + apiKey)
-	LOGWARN(resp.getStatus() + ':' + resp.getErrorMessage())
+	LOGWARN(resp.getStatus() + sCOLON + resp.getErrorMessage())
 	} else {
 	def owm = parseJson(resp.data)
 	LOGINFO('OpenWeatherMap Data: ' + owm)
@@ -559,21 +565,21 @@ void alertErr(String msg){
 		myUpdData('alert', 'Weather alerts are not available')
 		myUpdData('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">Weather alerts are not available.</a>')
 		LOGWARN(msg)
-		myUpdData('alertFails', '0')
+		myUpdData('alertFails', sZERO)
 	}
 }
 
 // <<<<<<<<<< Begin NWS Active Alert Poll Routines >>>>>>>>>>
 void pollAlerts() {
     if(ifreInstalled()) { updated(); return }
-    if(myGetData('alertFails')==null) {myUpdData('alertFails','0')}
+    if(myGetData('alertFails')==sNULL) {myUpdData('alertFails',sZERO)}
     Integer pollTimeout = settings.pollIntervalStation == '1 Minute' ? 15 : 30
     Map result = null
 /*for testing weather alerts in a different area
     altLat = 47.126230
     altLon = -88.602726
 */
-    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon, // + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + sCOMMA + altLon, // + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
 		    requestContentType:'application/json',
 		    contentType:'application/json',
 		    timeout: pollTimeout
@@ -592,11 +598,11 @@ void pollAlerts() {
 
     if(result!=null) {
 //    if(response?.status == 200) {
-	String curAl = result.features[0]?.properties?.event==null ? null: result.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
+	String curAl = result.features[0]?.properties?.event==null ? sNULL : result.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
 	LOGINFO('NWS Alert - response: ' + result + '; Alert: ' + curAl)
-	myUpdData('alertFails', '0')
+	myUpdData('alertFails', sZERO)
 	try {
-	    if(curAl==null) {
+	    if(curAl==sNULL) {
 		clearAlerts()
 	    } else {
 		myUpdData('noAlert',sFLS)
@@ -608,7 +614,7 @@ void pollAlerts() {
 		myUpdData('alertLink3', '<a style="font-style:italic;color:red" target=\'_blank\'>' + myGetData('alert')+sACB)
 		myUpdData('possAlert', sTRU)
 	    }
-	    myUpdData('alertFails', '0')
+	    myUpdData('alertFails', sZERO)
 
 	} catch (e) {
 	    alertErr('NWS Alert Poll Failed Three Times. This is a NWS API website issue.')
@@ -629,15 +635,22 @@ void pollAlerts() {
 }
 // >>>>>>>>>> End NWS Active Alert Poll Routines <<<<<<<<<<
 
-@Field static Map<String,String> dataStoreFLD=[:]
+@Field static Map<String,Map> dataStoreFLD=[:]
 
 void myUpdData(String key, String val){
-	dataStoreFLD[key]=val
+	String mc=device.id.toString()
+	Map<String,String> myV=dataStoreFLD[mc]
+	myV= myV!=null ? myV : [:]
+	myV[key]=val
+	dataStoreFLD[mc]=myV
 	removeDataValue(key) // THIS SHOULD BE REMOVED AT SOME POINT
 }
 
-static String myGetData(String key){
-	if(dataStoreFLD[key]) return (String)dataStoreFLD[key]
+String myGetData(String key){
+	String mc=device.id.toString()
+	Map<String,String> myV=dataStoreFLD[mc]
+	myV= myV!=null ? myV : [:]
+	if(myV[key]) return (String)myV[key]
 	else return sNULL
 }
 
@@ -752,7 +765,10 @@ static String getMapDescStr(data){
 }
 
 def pageDump(){
-	String message=getMapDescStr(dataStoreFLD)
+	String mc=device.id.toString()
+	Map myV=dataStoreFLD[mc]
+	myV= myV!=null ? myV : [:]
+	String message=getMapDescStr(myV)
 	log.info message
 }
 
@@ -775,7 +791,7 @@ void updateLux(Boolean pollAgain=true) {
 		}
 	}
     def (lux, bwn) = estimateLux(myGetData('condition_id').toInteger(), myGetData('cloud').toInteger())
-	myUpdData('illuminance', (!lux) ? '0' : lux.toString())
+	myUpdData('illuminance', (!lux) ? sZERO : lux.toString())
 	myUpdData('illuminated', String.format('%,4d', (!lux) ? 0 : lux).toString())
 	myUpdData('bwn', bwn)
 	if(pollAgain) PostPoll()
@@ -1064,17 +1080,19 @@ public void refresh() {
 void installed() {
 }
 
-@Field static String verFLD=''
+@Field static Map<String,String> verFLD=[:]
 
-static Boolean ifreInstalled(){
-	if(verFLD!=version()) return true
+Boolean ifreInstalled(){
+	String mc=device.id.toString()
+	if(verFLD[mc]!=version()) return true
 	return false
 }
 
 void updated(){
 	LOGINFO("running updated()")
 	unschedule()
-	verFLD=version()
+	String mc=device.id.toString()
+	verFLD[mc]=version()
 	initMe()
 	updateCheck()
 	runIn(5,finishSched)
@@ -1150,9 +1168,9 @@ void initMe() {
     String rainFormat = (settings.rainFormat ?: 'Inches')
     String tempFormat = (settings.tempFormat ?: 'Fahrenheit (°F)')
     setMeasurementMetrics(distanceFormat, pressureFormat, rainFormat, tempFormat)
-    String TWDDecimals = (settings.TWDDecimals ?: '0')
-    String PDecimals = (settings.PDecimals ?: '0')
-    String RDecimals = (settings.RDecimals ?: '0')
+    String TWDDecimals = (settings.TWDDecimals ?: sZERO)
+    String PDecimals = (settings.PDecimals ?: sZERO)
+    String RDecimals = (settings.RDecimals ?: sZERO)
     setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
 }
 
@@ -1343,7 +1361,7 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 		case { it < twilight_beginMillis}:
 			bwn = 'Fully Night Time'
 			lux = 5l
-	    aFCC = false
+			aFCC = false
 			break
 		case { it < sunriseTimeMillis}:
 			bwn = 'between twilight and sunrise'
@@ -1368,7 +1386,7 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 		case { it < twiStartNextMillis}:
 			bwn = 'Fully Night Time'
 			lux = 5l
-	    aFCC = false
+			aFCC = false
 			break
 		case { it < sunriseNextMillis}:
 			bwn = 'between twilight and sunrise'
@@ -1393,39 +1411,39 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 		default:
 			bwn = 'Fully Night Time'
 			lux = 5l
-	    aFCC = false
+			aFCC = false
 			break
 	}
-    String cC = condition_id.toString()
+	String cC = condition_id.toString()
 	String cCT = ' using cloud cover from API'
-    Double cCF = (!cloud || cloud==sBLK) ? 0.998d : (1 - (cloud/100 / 3d))
-    if(aFCC){
-	if(!cloud){
-	    LUitem = LUTable.find{ it.id == condition_id }
+	Double cCF = (!cloud || cloud==sBLK) ? 0.998d : (1 - (cloud/100 / 3d))
+	if(aFCC){
+		if(!cloud){
+			LUitem = LUTable.find{ it.id == condition_id }
 			if (LUitem)    {
 				cCF = (LUitem ? (LUitem.luxpercent / 3d) : 0.998d)
 				cCT = ' using estimated cloud cover based on condition.'
-	    } else {
-		cCF = 1.0
-			cCT = ' cloud coverage not available now.'
+			} else {
+				cCF = 1.0
+				cCT = ' cloud coverage not available now.'
 			}
+		}
 	}
-    }
 	lux = (lux * cCF) as Long
-    Boolean t_jitter = (!settings.luxjitter) ? false : settings.luxjitter
-    if(t_jitter){
-	// reduce event variability  code from @nh.schottfam
-	if(lux > 1100) {
-	    Long t0 = (lux/800)
-	    lux = t0 * 800
-	} else if(lux <= 1100 && lux > 400) {
-	    Long t0 = (lux/400)
-	    lux = t0 * 400
-	} else {
-	    lux = 5
+	Boolean t_jitter = (!settings.luxjitter) ? false : settings.luxjitter
+	if(t_jitter){
+		// reduce event variability  code from @nh.schottfam
+		if(lux > 1100) {
+			Long t0 = (lux/800)
+			lux = t0 * 800
+		} else if(lux <= 1100 && lux > 400) {
+			Long t0 = (lux/400)
+			lux = t0 * 400
+		} else {
+			lux = 5
+		}
 	}
-    }
-    lux = Math.max(lux, 5)
+	lux = Math.max(lux, 5)
 	LOGINFO('estimateLux results: condition: ' + cC + ' | condition factor: ' + cCF + ' | condition text: ' + cCT + '| lux: ' + lux)
 	return [lux, bwn]
 }
@@ -1454,12 +1472,12 @@ void SummaryMessage(Boolean SType, String Slast_poll_date, String Slast_poll_tim
 	wSum+= 'Wind: ' + myGetData('wind_string') + ', gusts: ' + ((windgust < 1.00) ? 'calm. ' : 'up to ' + windgust.toString() + sSPC + myGetData(sDMETR) + '. ')
 	wSum+= Sprecip
 	wSum+= Svis
-	wSum+= alertPublish ? ((!myGetData('alert') || myGetData('alert')==null) ? sBLK : sSPC + myGetData('alert') + '.') : sBLK
+	wSum+= alertPublish ? ((!myGetData('alert') || myGetData('alert')==null) ? sBLK : sSPC + myGetData('alert') + sDOT) : sBLK
     } else {
 	wSum = myGetData('condition_text') + sSPC
 	wSum+= ((!SforecastTemp || SforecastTemp==sBLK) ? '. ' : SforecastTemp)
 	wSum+= ' Humidity: ' + myGetData('humidity') + '%. Temperature: ' + String.format(myGetData('ddisp_twd'), myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + '. '
-	wSum+= myGetData('wind_string') + ', gusts: ' + ((windgust == 0.00) ? 'calm. ' : 'up to ' + windgust + myGetData(sDMETR) + '.')
+	wSum+= myGetData('wind_string') + ', gusts: ' + ((windgust == 0.00) ? 'calm. ' : 'up to ' + windgust + myGetData(sDMETR) + sDOT)
 	}
     wSum = wSum.take(1024)
     sendEvent(name: 'weatherSummary', value: wSum)
@@ -1655,9 +1673,9 @@ void updateCheckHandler(resp, data) {
 				break
 		}
 
-    } else {
-	log.error 'Something went wrong: CHECK THE JSON FILE AND IT\'S URI'
-    }
+	} else {
+		log.error 'Something went wrong: CHECK THE JSON FILE AND IT\'S URI'
+	}
 }
 
 /*
@@ -1666,7 +1684,7 @@ void updateCheckHandler(resp, data) {
 */
 static String padVer(String ver) {
 	String pad = sBLK
-	ver.replaceAll( '[vV]', sBLK ).split( /\./ ).each { pad += it.padLeft( 2, '0' ) }
+	ver.replaceAll( '[vV]', sBLK ).split( /\./ ).each { pad += it.padLeft( 2, sZERO ) }
 	return pad
 }
 
