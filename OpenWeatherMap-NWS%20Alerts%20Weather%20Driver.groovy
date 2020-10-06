@@ -597,7 +597,8 @@ void pollAlerts() {
 		   ]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
     try {
-	httpGet(ParamsAlerts) { response -> result = response.data }
+	asynchttpGet('pollAlertsHandler', ParamsAlerts)
+	//httpGet(ParamsAlerts) { response -> result = response.data }
     }
 	catch (SocketTimeoutException e) {
 	    alertErr('NWS Alerts - Connection to weather.gov API timed out. This is a NWS API website issue, the website is busy.')
@@ -606,8 +607,14 @@ void pollAlerts() {
 	catch (e) {
 	    alertErr('NWS Alerts - Connection to weather.gov API failed. This is a NWS API website issue, the website is down or not responding as expected.')
 	}
+}
 
-    if(result!=null) {
+void pollAlertsHandler(resp, data) {
+    def t0=resp.getHeaders()
+    Integer responseCode=resp.status
+    if(responseCode>=200 && responseCode<300 && resp.data){
+	def result= parseJson(resp.data)
+//    if(result!=null) {
 //    if(response?.status == 200) {
 	String curAl = result.features[0]?.properties?.event==null ? sNULL : result.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
 	LOGINFO('NWS Alert - response: ' + result + '; Alert: ' + curAl)
@@ -618,10 +625,10 @@ void pollAlerts() {
 	    } else {
 		myUpdData('noAlert',sFLS)
 		myUpdData('alert', curAl)
-		myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
-		myUpdData('alertLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+myGetData('alert')+sACB)
 		String al3 = '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
-		myUpdData('alertLink2', al3 + myGetData('alert')+sACB)
+		myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
+		myUpdData('alertLink',     al3+myGetData('alert')+sACB)
+		myUpdData('alertLink2',    al3+myGetData('alert')+sACB)
 		myUpdData('alertLink3', '<a style="font-style:italic;color:red" target=\'_blank\'>' + myGetData('alert')+sACB)
 		myUpdData('possAlert', sTRU)
 	    }
