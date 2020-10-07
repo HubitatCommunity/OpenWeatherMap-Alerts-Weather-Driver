@@ -44,11 +44,12 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/02/2020
+	Last Update 10/07/2020
 	{ Left room below to document version changes...}
 
-	V0.2.5	09/24/2020	More string constant optimizations (by @nh.schottfam)
-	V0.2.4	09/24/2020	Fix to allow for use of multiple virtual devices, More string constant optimizations (by @nh.schottfam)
+	V0.2.6	10/07/2020	Change to use asynchttp for NWS alerts (by @nh.schottfam).
+	V0.2.5	10/02/2020	More string constant optimizations (by @nh.schottfam)
+	V0.2.4	09/27/2020	Fix to allow for use of multiple virtual devices, More string constant optimizations (by @nh.schottfam)
 	V0.2.3	09/24/2020	More string constant optimizations, and removal of white space characters (by @nh.schottfam)
 	V0.2.2	09/23/2020	Removing 'urgency' restrictions from alerts poll
 	V0.2.1	09/22/2020	Added forecast icon url attributes for tomorrow and day-after-tomorrow
@@ -86,7 +87,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-public static String version()      {  return '0.2.5'  }
+public static String version()      {  return '0.2.6'  }
 import groovy.transform.Field
 
 metadata {
@@ -568,8 +569,8 @@ void clearAlerts(){
 
 void alertErr(String msg){
 	myUpdData('alertFails', (myGetData('alertFails').toInteger() + 1).toString())
-       	if(myGetData('alertFails').toInteger() < 3) {
-       		runIn(5, pollAlerts)
+	   	if(myGetData('alertFails').toInteger() < 3) {
+	   		runIn(5, pollAlerts)
 		LOGINFO('NWS Alert Data Poll Failed, Will try again in 5 seconds.')
 	} else {
 		clearAlerts()
@@ -597,7 +598,8 @@ void pollAlerts() {
 		   ]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
     try {
-	httpGet(ParamsAlerts) { response -> result = response.data }
+	asynchttpGet('pollAlertsHandler', ParamsAlerts)
+	//httpGet(ParamsAlerts) { response -> result = response.data }
     }
 	catch (SocketTimeoutException e) {
 	    alertErr('NWS Alerts - Connection to weather.gov API timed out. This is a NWS API website issue, the website is busy.')
@@ -606,9 +608,12 @@ void pollAlerts() {
 	catch (e) {
 	    alertErr('NWS Alerts - Connection to weather.gov API failed. This is a NWS API website issue, the website is down or not responding as expected.')
 	}
-
-    if(result!=null) {
-//    if(response?.status == 200) {
+}
+void pollAlertsHandler(resp, data) {
+    def t0=resp.getHeaders()
+    Integer responseCode=resp.status
+    if(responseCode>=200 && responseCode<300 && resp.data){
+	def result= parseJson(resp.data)
 	String curAl = result.features[0]?.properties?.event==null ? sNULL : result.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
 	LOGINFO('NWS Alert - response: ' + result + '; Alert: ' + curAl)
 	myUpdData('alertFails', sZERO)
@@ -618,10 +623,10 @@ void pollAlerts() {
 	    } else {
 		myUpdData('noAlert',sFLS)
 		myUpdData('alert', curAl)
-		myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
-		myUpdData('alertLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\'_blank\'>'+myGetData('alert')+sACB)
 		String al3 = '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
-		myUpdData('alertLink2', al3 + myGetData('alert')+sACB)
+		myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
+		myUpdData('alertLink',     al3+myGetData('alert')+sACB)
+		myUpdData('alertLink2',    al3+myGetData('alert')+sACB)
 		myUpdData('alertLink3', '<a style="font-style:italic;color:red" target=\'_blank\'>' + myGetData('alert')+sACB)
 		myUpdData('possAlert', sTRU)
 	    }
@@ -644,7 +649,7 @@ void pollAlerts() {
     sendEvent(name: 'alertTile', value: myGetData('alertTile'))
     //  >>>>>>>>>> End Built alertTile <<<<<<<<<<
 }
-// >>>>>>>>>> End NWS Active Alert Poll Routines <<<<<<<<<<
+	// >>>>>>>>>> End NWS Active Alert Poll Routines <<<<<<<<<<
 
 @Field static Map<String,Map> dataStoreFLD=[:]
 
