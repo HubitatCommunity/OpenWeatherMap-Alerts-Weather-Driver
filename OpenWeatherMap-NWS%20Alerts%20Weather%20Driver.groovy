@@ -100,8 +100,8 @@ metadata {
 		capability 'Temperature Measurement'
 		capability 'Illuminance Measurement'
 		capability 'Relative Humidity Measurement'
- 		capability 'Pressure Measurement'
- 		capability 'Ultraviolet Index'
+		capability 'Pressure Measurement'
+		capability 'Ultraviolet Index'
 
 		capability 'Refresh'
 
@@ -252,8 +252,8 @@ void pollSunRiseSet() {
     if(ifreInstalled()) { updated(); return }
     String currDate = new Date().format('yyyy-MM-dd', TimeZone.getDefault())
     LOGINFO('Polling Sunrise-Sunset.org')
-    def requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + altLat + '&lng=' + altLon + '&formatted=0' ]
-    if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + altLat + '&lng=' + altLon + '&formatted=0&date=' + currDate ]}
+    def requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0' ]
+    if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0&date=' + currDate ]}
     LOGINFO('Poll Sunrise-Sunset: ' + requestParams)
     asynchttpGet('sunRiseSetHandler', requestParams)
 }
@@ -261,22 +261,23 @@ void pollSunRiseSet() {
 void sunRiseSetHandler(resp, data) {
 	if(ifreInstalled()) { updated(); return }
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
-		sunRiseSet = resp.getJson().results
-		myUpdData('sunRiseSet', resp.data)
+		myUpdData('sunRiseSet', (String)resp.data)
+		Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
+		//sunRiseSet = resp.getJson().results
 		LOGINFO('Sunrise-Sunset Data: ' + sunRiseSet)
 		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 		String tfmt1='HH:mm'
-		myUpdData('riseTime', new Date().parse(tfmt, sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('noonTime', new Date().parse(tfmt, sunRiseSet.solar_noon).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('setTime', new Date().parse(tfmt, sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('tw_begin', new Date().parse(tfmt, sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('tw_end', new Date().parse(tfmt, sunRiseSet.civil_twilight_end).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('localSunset',new Date().parse(tfmt, sunRiseSet.sunset).format(myGetData('timeFormat'), TimeZone.getDefault()))
-		myUpdData('localSunrise', new Date().parse(tfmt, sunRiseSet.sunrise).format(myGetData('timeFormat'), TimeZone.getDefault()))
-		myUpdData('riseTime1', new Date().parse(tfmt, sunRiseSet.sunrise + 86400000).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('riseTime2', new Date().parse(tfmt, sunRiseSet.sunrise + 86400000 + 86400000).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('setTime1', new Date().parse(tfmt, sunRiseSet.sunset + 86400000).format(tfmt1, TimeZone.getDefault()))
-		myUpdData('setTime2', new Date().parse(tfmt, sunRiseSet.sunset + 86400000 + 86400000).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('riseTime', new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('noonTime', new Date().parse(tfmt, (String)sunRiseSet.solar_noon).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('setTime', new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('tw_begin', new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('tw_end', new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_end).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('localSunset',new Date().parse(tfmt, (String)sunRiseSet.sunset).format(myGetData('timeFormat'), TimeZone.getDefault()))
+		myUpdData('localSunrise', new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(myGetData('timeFormat'), TimeZone.getDefault()))
+		myUpdData('riseTime1', new Date().parse(tfmt, (String)sunRiseSet.sunrise).plus(1).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('riseTime2', new Date().parse(tfmt, (String)sunRiseSet.sunrise).plus(2).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('setTime1', new Date().parse(tfmt, (String)sunRiseSet.sunset).plus(1).format(tfmt1, TimeZone.getDefault()))
+		myUpdData('setTime2', new Date().parse(tfmt, (String)sunRiseSet.sunset).plus(2).format(tfmt1, TimeZone.getDefault()))
 	} else {
 		LOGWARN('Sunrise-Sunset api did not return data.')
 	}
@@ -291,7 +292,7 @@ void pollOWM() {
 	return
     }
     def ParamsOWM
-    ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + apiKey ]
+    ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey ]
     LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
     asynchttpGet('pollOWMHandler', ParamsOWM)
 }
@@ -300,13 +301,13 @@ void pollOWMHandler(resp, data) {
     if(ifreInstalled()) { updated(); return }
     LOGINFO('Polling OpenWeatherMap.org')
     if(resp.getStatus() != 200 && resp.getStatus() != 207) {
-	LOGWARN('Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + altLat + '&lon=' + altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + apiKey)
+	LOGWARN('Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey)
 	LOGWARN(resp.getStatus() + sCOLON + resp.getErrorMessage())
 	} else {
-	def owm = parseJson(resp.data)
-	LOGINFO('OpenWeatherMap Data: ' + owm)
+	Map owm = parseJson(resp.data)
+	LOGINFO('OpenWeatherMap Data: ' + owm.toString())
 
-	fotime = (owm?.current?.dt==null) ? new Date() : new Date(owm.current.dt * 1000L)
+	fotime = (owm?.current?.dt==null) ? new Date() : new Date((Long)owm.current.dt * 1000L)
 	myUpdData('fotime', fotime.toString())
 	futime = new Date()
 	myUpdData('futime', futime.toString())
@@ -420,10 +421,10 @@ void pollOWMHandler(resp, data) {
 	myUpdData('wind', t_wd.toString())
 	myUpdData('wind_gust', t_wg.toString())
 
-	myUpdData('wind_degree', owm.current.wind_deg.toInteger().toString())
+	BigDecimal twb = owm?.current?.wind_deg==null ? 0.00 : owm.current.wind_deg.toBigDecimal()
+	myUpdData('wind_degree', twb.toInteger().toString())
 	String w_cardinal
 	String w_direction
-	BigDecimal twb = owm?.current?.wind_deg==null ? 0.00 : owm.current.wind_deg.toBigDecimal()
 	if(twb < 11.25) {
 	    w_cardinal = 'N'; w_direction = 'North'
 	}else if(twb < 33.75) {
@@ -481,7 +482,7 @@ void pollOWMHandler(resp, data) {
 	myUpdData('forecast_code', getCondCode(myGetData('forecast_id').toInteger(), sTRU))
 	myUpdData('forecast_text', owmDaily==null || owmDaily[0]?.description==null ? 'Unknown' : owmDaily[0].description.capitalize())
 
-	owmDaily = owm?.daily != null ? owm.daily : null
+	owmDaily = owm?.daily != null ? (List)owm.daily : null
 	BigDecimal t_p0 = (owmDaily==null || owmDaily[0]?.rain==null ? 0.00 : owmDaily[0].rain) + (owmDaily==null || owmDaily[0]?.snow==null ? 0.00 : owmDaily[0].snow)
 
 	myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
@@ -495,40 +496,39 @@ void pollOWMHandler(resp, data) {
 	}
 
 	String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
-	if(owmDaily && (threedayTilePublish || myTile2Publish || fcstHighLowPublish)) {
-	    myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date(owmDaily[1].dt * 1000L).format('EEEE'))
-	    myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date(owmDaily[2].dt * 1000L).format('EEEE'))
+	if(owmDaily && owmDaily[1] && owmDaily[2] && (threedayTilePublish || myTile2Publish || fcstHighLowPublish)) {
+	    myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date((Long)owmDaily[1].dt * 1000L).format('EEEE'))
+	    myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date((Long)owmDaily[2].dt * 1000L).format('EEEE'))
 
 	    myUpdData('is_day1', sTRU)
 	    myUpdData('is_day2', sTRU)
-	    myUpdData('forecast_id1', owm?.daily[1]?.weather[0]?.id==null ? '999' : owm.daily[1].weather[0].id.toString())
+	    myUpdData('forecast_id1', owmDaily[1]?.weather[0]?.id==null ? '999' : owmDaily[1].weather[0].id.toString())
 	    myUpdData('forecast_code1', getCondCode(myGetData('forecast_id1').toInteger(), sTRU))
-	    myUpdData('forecast_text1', owm?.daily[1]?.weather[0]?.description==null ? 'Unknown' : owm.daily[1].weather[0].description.capitalize())
+	    myUpdData('forecast_text1', owmDaily[1]?.weather[0]?.description==null ? 'Unknown' : owmDaily[1].weather[0].description.capitalize())
 
-	    myUpdData('forecast_id2', owm?.daily[2]?.weather[0]?.id==null ? '999' : owm.daily[2].weather[0].id.toString())
+	    myUpdData('forecast_id2', owmDaily[2]?.weather[0]?.id==null ? '999' : owmDaily[2].weather[0].id.toString())
 	    myUpdData('forecast_code2', getCondCode(myGetData('forecast_id2').toInteger(), sTRU))
-	    myUpdData('forecast_text2', owm?.daily[2]?.weather[0]?.description==null ? 'Unknown' : owm.daily[2].weather[0].description.capitalize())
+	    myUpdData('forecast_text2', owmDaily[2]?.weather[0]?.description==null ? 'Unknown' : owmDaily[2].weather[0].description.capitalize())
 
-	    myUpdData('forecastHigh+1', adjTemp(owm?.daily[1]?.temp?.max, isF, mult_twd))
-	    myUpdData('forecastHigh+2', adjTemp(owm?.daily[2]?.temp?.max, isF, mult_twd))
+	    myUpdData('forecastHigh+1', adjTemp(owmDaily[1]?.temp?.max, isF, mult_twd))
+	    myUpdData('forecastHigh+2', adjTemp(owmDaily[2]?.temp?.max, isF, mult_twd))
 
-	    myUpdData('forecastLow+1', adjTemp(owm?.daily[1]?.temp?.min, isF, mult_twd))
-	    myUpdData('forecastLow+2', adjTemp(owm?.daily[2]?.temp?.min, isF, mult_twd))
-		
-		myUpdData('forecastMorn', adjTemp(owm?.daily[0]?.temp?.morn, isF, mult_twd))
-		myUpdData('forecastDay', adjTemp(owm?.daily[0]?.temp?.day, isF, mult_twd))
-		myUpdData('forecastEve', adjTemp(owm?.daily[0]?.temp?.eve, isF, mult_twd))
-		myUpdData('forecastNight', adjTemp(owm?.daily[0]?.temp?.night, isF, mult_twd))
+	    myUpdData('forecastLow+1', adjTemp(owmDaily[1]?.temp?.min, isF, mult_twd))
+	    myUpdData('forecastLow+2', adjTemp(owmDaily[2]?.temp?.min, isF, mult_twd))
 
-		myUpdData('forecastMorn+1', adjTemp(owm?.daily[1]?.temp?.morn, isF, mult_twd))
-		myUpdData('forecastDay+1', adjTemp(owm?.daily[1]?.temp?.day, isF, mult_twd))
-		myUpdData('forecastEve+1', adjTemp(owm?.daily[1]?.temp?.eve, isF, mult_twd))
-		myUpdData('forecastNight+1', adjTemp(owm?.daily[1]?.temp?.night, isF, mult_twd))
+	    myUpdData('forecastMorn', adjTemp(owmDaily[0]?.temp?.morn, isF, mult_twd))
+	    myUpdData('forecastDay', adjTemp(owmDaily[0]?.temp?.day, isF, mult_twd))
+	    myUpdData('forecastEve', adjTemp(owmDaily[0]?.temp?.eve, isF, mult_twd))
+	    myUpdData('forecastNight', adjTemp(owmDaily[0]?.temp?.night, isF, mult_twd))
 
+	    myUpdData('forecastMorn+1', adjTemp(owmDaily[1]?.temp?.morn, isF, mult_twd))
+	    myUpdData('forecastDay+1', adjTemp(owmDaily[1]?.temp?.day, isF, mult_twd))
+	    myUpdData('forecastEve+1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
+	    myUpdData('forecastNight+1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
 	    String imgT= '<img class="centerImage" src=' + myGetData(sICON)
 	    myUpdData('imgName0', imgT + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
-	    myUpdData('imgName1', imgT + getImgName(owm?.daily[1]?.weather[0]?.id==null ? 999 : owm.daily[1].weather[0].id, sTRU) + imgT1 + sRB)
-	    myUpdData('imgName2', imgT + getImgName(owm?.daily[2]?.weather[0]?.id==null ? 999 : owm.daily[2].weather[0].id, sTRU) + imgT1 + sRB)
+	    myUpdData('imgName1', imgT + getImgName(owmDaily[1]?.weather[0]?.id==null ? 999 : owmDaily[1].weather[0].id, sTRU) + imgT1 + sRB)
+	    myUpdData('imgName2', imgT + getImgName(owmDaily[2]?.weather[0]?.id==null ? 999 : owmDaily[2].weather[0].id, sTRU) + imgT1 + sRB)
 	}
 	if(condition_icon_urlPublish) {
 	    String imgName1 = getImgName(myGetData('forecast_id1').toInteger(), myGetData('is_day'))
@@ -536,8 +536,8 @@ void pollOWMHandler(resp, data) {
 	    sendEvent(name: 'condition_icon_url1', value: myGetData(sICON) + imgName1 + imgT1)
 	    sendEvent(name: 'condition_icon_url2', value: myGetData(sICON) + imgName2 + imgT1)
 	}
-	myUpdData('forecastHigh', adjTemp(owm?.daily[0]?.temp?.max, isF, mult_twd))
-	myUpdData('forecastLow', adjTemp(owm?.daily[0]?.temp?.min, isF, mult_twd))
+	myUpdData('forecastHigh', adjTemp(owmDaily[0]?.temp?.max, isF, mult_twd))
+	myUpdData('forecastLow', adjTemp(owmDaily[0]?.temp?.min, isF, mult_twd))
 	if(precipExtendedPublish){
 	    myUpdData('rainTomorrow', myGetData('Precip1'))
 	    myUpdData('rainDayAfterTomorrow', myGetData('Precip2'))
@@ -568,7 +568,7 @@ void pollOWMHandler(resp, data) {
 }
 // >>>>>>>>>> End OpenWeatherMap Poll Routine <<<<<<<<<<
 
-String adjTemp(temp, Boolean isF, Integer mult_twd){
+static String adjTemp(temp, Boolean isF, Integer mult_twd){
 	BigDecimal t_fl
 	t_fl = temp==null ? 0.00 : temp.toBigDecimal()
 	if(!isF) t_fl = (t_fl - 32.0) / 1.8
@@ -579,7 +579,7 @@ String adjTemp(temp, Boolean isF, Integer mult_twd){
 void clearAlerts(){
 	myUpdData('noAlert',sTRU)
 	myUpdData('alert', 'No current weather alerts for this area')
-	myUpdData('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
+	myUpdData('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + (String)altLat + '&lon=' + (String)altLon + '" target=\"_blank\">No current weather alerts for this area.</a>')
 	myUpdData('alertLink', sAB + myGetData('condition_text') + sACB)
 	myUpdData('alertLink2', sAB + myGetData('condition_text') + sACB)
 	myUpdData('alertLink3', sAB + myGetData('condition_text') + sACB)
@@ -588,13 +588,13 @@ void clearAlerts(){
 
 void alertErr(String msg){
 	myUpdData('alertFails', (myGetData('alertFails').toInteger() + 1).toString())
-	   	if(myGetData('alertFails').toInteger() < 3) {
-	   		runIn(5, pollAlerts)
+		if(myGetData('alertFails').toInteger() < 3) {
+			runIn(5, pollAlerts)
 		LOGINFO('NWS Alert Data Poll Failed, Will try again in 5 seconds.')
 	} else {
 		clearAlerts()
 		myUpdData('alert', 'Weather alerts are not available')
-		myUpdData('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target=\"_blank\">Weather alerts are not available.</a>')
+		myUpdData('alertTileLink', '<a href="https://forecast.weather.gov/MapClick.php?lat=' + (String)altLat + '&lon=' + (String)altLon + '" target=\"_blank\">Weather alerts are not available.</a>')
 		LOGWARN(msg)
 		myUpdData('alertFails', sZERO)
 	}
@@ -605,20 +605,19 @@ void pollAlerts() {
     if(ifreInstalled()) { updated(); return }
     if(myGetData('alertFails')==sNULL) {myUpdData('alertFails',sZERO)}
     Integer pollTimeout = settings.pollIntervalStation == '1 Minute' ? 15 : 30
-    Map result = null
+//    Map result = null
 /*for testing weather alerts in a different area
     altLat = 47.126230
     altLon = -88.602726
 */
-    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + sCOMMA + altLon, // + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
-		    requestContentType:'application/json',
-		    contentType:'application/json',
-		    timeout: pollTimeout
-		   ]
+    Map ParamsAlerts = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + (String)altLat + sCOMMA + (String)altLon, // + '&urgency=unknown,future,expected,immediate&severity=unknown,moderate,severe,extreme&certainty=unknown,possible,likely,observed',
+		requestContentType:'application/json',
+		contentType:'application/json',
+		timeout: pollTimeout
+	]
     LOGINFO('Poll api.weather.gov/alerts/active: ' + ParamsAlerts)
     try {
 	asynchttpGet('pollAlertsHandler', ParamsAlerts)
-	//httpGet(ParamsAlerts) { response -> result = response.data }
     }
 	catch (SocketTimeoutException e) {
 	    alertErr('NWS Alerts - Connection to weather.gov API timed out. This is a NWS API website issue, the website is busy.')
@@ -629,12 +628,12 @@ void pollAlerts() {
 	}
 }
 void pollAlertsHandler(resp, data) {
-    def t0=resp.getHeaders()
+//    def t0=resp.getHeaders()
     Integer responseCode=resp.status
     if(responseCode>=200 && responseCode<300 && resp.data){
 	def result= parseJson(resp.data)
 	String curAl = result.features[0]?.properties?.event==null ? sNULL : result.features[0].properties.event.replaceAll('[{}\\[\\]]', sBLK).split(/,/)[0]
-	LOGINFO('NWS Alert - response: ' + result + '; Alert: ' + curAl)
+	LOGINFO('NWS Alert - response: ' + result.toString() + '; Alert: ' + curAl)
 	myUpdData('alertFails', sZERO)
 	try {
 	    if(curAl==sNULL) {
@@ -642,7 +641,7 @@ void pollAlertsHandler(resp, data) {
 	    } else {
 		myUpdData('noAlert',sFLS)
 		myUpdData('alert', curAl)
-		String al3 = '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">'
+		String al3 = '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + (String)altLat + '&lon=' + (String)altLon + '" target="_blank">'
 		myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
 		myUpdData('alertLink',     al3+myGetData('alert')+sACB)
 		myUpdData('alertLink2',    al3+myGetData('alert')+sACB)
@@ -660,9 +659,9 @@ void pollAlertsHandler(resp, data) {
 
 
     //  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-    String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + myGetData('city') + '</a><br>updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
+    String alertTile = 'Weather Alerts for ' + '<a href="https://forecast.weather.gov/MapClick.php?lat=' + (String)altLat + '&lon=' + (String)altLon + '" target="_blank">' + myGetData('city') + '</a><br>updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
     alertTile+= myGetData('alertTileLink') + sBR
-    alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '\" target=\'_blank\'>'+sIMGS + myGetData(sICON) + 'NWS_240px.png' + ' style=\"height:2.0em;display:inline;\"></a>'
+    alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + (String)altLat + '&lon=' + (String)altLon + '\" target=\'_blank\'>'+sIMGS + myGetData(sICON) + 'NWS_240px.png' + ' style=\"height:2.0em;display:inline;\"></a>'
     myUpdData('alertTile', alertTile)
     sendEvent(name: 'alert', value: myGetData('alert'))
     sendEvent(name: 'alertTile', value: myGetData('alertTile'))
@@ -825,7 +824,7 @@ void updateLux(Boolean pollAgain=true) {
 			return
 		}
 	}
-    def (lux, bwn) = estimateLux(myGetData('condition_id').toInteger(), myGetData('cloud').toInteger())
+	def (Long lux, String bwn) = estimateLux(myGetData('condition_id').toInteger(), myGetData('cloud').toInteger())
 	myUpdData('illuminance', (!lux) ? sZERO : lux.toString())
 	myUpdData('illuminated', String.format('%,4d', (!lux) ? 0 : lux).toString())
 	myUpdData('bwn', bwn)
@@ -837,22 +836,22 @@ void updateLux(Boolean pollAgain=true) {
 void PostPoll() {
     if(ifreInstalled()) { updated(); return }
     Integer mult_twd=myGetData('mult_twd').toInteger()
-    Integer mult_p=myGetData('mult_p').toInteger()
-    Integer mult_r=myGetData('mult_r').toInteger()
-    def sunRiseSet = parseJson(myGetData('sunRiseSet')).results
+//    Integer mult_p=myGetData('mult_p').toInteger()
+//    Integer mult_r=myGetData('mult_r').toInteger()
+    Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
 /*  SunriseSunset Data Eements */
     String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
     String tfmt1=myGetData('timeFormat')
     if(localSunrisePublish){  // don't bother setting these values if it's not enabled
-	sendEvent(name: tw_begin, value: new Date().parse(tfmt, sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: sunriseTime, value: new Date().parse(tfmt, sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: noonTime, value: new Date().parse(tfmt, sunRiseSet.solar_noon).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: sunsetTime, value: new Date().parse(tfmt, sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: tw_end, value: new Date().parse(tfmt, sunRiseSet.civil_twilight_end).format(tfmt1, TimeZone.getDefault()))
+	sendEvent(name: tw_begin, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
+	sendEvent(name: sunriseTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
+	sendEvent(name: noonTime, value: new Date().parse(tfmt, (String)sunRiseSet.solar_noon).format(tfmt1, TimeZone.getDefault()))
+	sendEvent(name: sunsetTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault()))
+	sendEvent(name: tw_end, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_end).format(tfmt1, TimeZone.getDefault()))
     }
     if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
-	sendEvent(name: 'localSunset', value: new Date().parse(tfmt, sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
-	sendEvent(name: 'localSunrise', value: new Date().parse(tfmt, sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
+	sendEvent(name: 'localSunset', value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
+	sendEvent(name: 'localSunrise', value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
     }
 
 /*  Capability Data Elements */
@@ -885,32 +884,32 @@ void PostPoll() {
     sendEventPublish(name: 'forecast_code', value: myGetData('forecast_code'))
     sendEventPublish(name: 'forecast_text', value: myGetData('forecast_text'))
     if(fcstHighLowPublish){ // don't bother setting these values if it's not enabled
-		sendEvent(name: 'forecastHigh', value: myGetData('forecastHigh').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastHigh+1', value: myGetData('forecastHigh+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastHigh+2', value: myGetData('forecastHigh+2').toBigDecimal(), unit: myGetData(sTMETR))
-    	sendEvent(name: 'forecastLow', value: myGetData('forecastLow').toBigDecimal(), unit: myGetData(sTMETR))
-    	sendEvent(name: 'forecastLow+1', value: myGetData('forecastLow+1').toBigDecimal(), unit: myGetData(sTMETR))
-    	sendEvent(name: 'forecastLow+2', value: myGetData('forecastLow+2').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastMorn', value: myGetData('forecastMorn').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastDay', value: myGetData('forecastDay').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastEve', value: myGetData('forecastEve').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastNight', value: myGetData('forecastNight').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastMorn+1', value: myGetData('forecastMorn+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastDay+1', value: myGetData('forecastDay+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastEve+1', value: myGetData('forecastEve+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastNight+1', value: myGetData('forecastNight+1').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastHigh', value: myGetData('forecastHigh').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastHigh+1', value: myGetData('forecastHigh+1').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastHigh+2', value: myGetData('forecastHigh+2').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastLow', value: myGetData('forecastLow').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastLow+1', value: myGetData('forecastLow+1').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastLow+2', value: myGetData('forecastLow+2').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastMorn', value: myGetData('forecastMorn').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastDay', value: myGetData('forecastDay').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastEve', value: myGetData('forecastEve').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastNight', value: myGetData('forecastNight').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastMorn+1', value: myGetData('forecastMorn+1').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastDay+1', value: myGetData('forecastDay+1').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastEve+1', value: myGetData('forecastEve+1').toBigDecimal(), unit: myGetData(sTMETR))
+	sendEvent(name: 'forecastNight+1', value: myGetData('forecastNight+1').toBigDecimal(), unit: myGetData(sTMETR))
     }
     sendEventPublish(name: 'illuminated', value: myGetData('illuminated') + ' lx')
     sendEventPublish(name: 'is_day', value: myGetData('is_day'))
 
     if(obspollPublish){  // don't bother setting these values if it's not enabled
-    	sendEvent(name: 'last_poll_Forecast', value: new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('futime')).format(myGetData('dateFormat'), TimeZone.getDefault()) + ', ' + new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('futime')).format(tfmt1, TimeZone.getDefault()))
+	sendEvent(name: 'last_poll_Forecast', value: new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('futime')).format(myGetData('dateFormat'), TimeZone.getDefault()) + ', ' + new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('futime')).format(tfmt1, TimeZone.getDefault()))
 	sendEvent(name: 'last_observation_Forecast', value: new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('fotime')).format(myGetData('dateFormat'), TimeZone.getDefault()) + ', ' + new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('fotime')).format(tfmt1, TimeZone.getDefault()))
     }
 
     if(precipExtendedPublish){ // don't bother setting these values if it's not enabled
 	sendEvent(name: 'rainDayAfterTomorrow', value: myGetData('rainDayAfterTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
-    	sendEvent(name: 'rainTomorrow', value: myGetData('rainTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
+	sendEvent(name: 'rainTomorrow', value: myGetData('rainTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
     }
     sendEventPublish(name: 'vis', value: Math.round(myGetData('vis').toBigDecimal() * mult_twd) / mult_twd, unit: (myGetData(sDMETR)=='MPH' ? 'miles' : 'kilometers'))
     sendEventPublish(name: 'wind_degree', value: myGetData('wind_degree').toInteger(), unit: 'DEGREE')
@@ -922,7 +921,7 @@ void PostPoll() {
     buildweatherSummary()
 
 //    https://tinyurl.com/h7pp5yn points to https://openweathermap.org/weathermap
-    String OWMIcon = '<a href="https://tinyurl.com/h7pp5yn?lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
+    String OWMIcon = '<a href="https://tinyurl.com/h7pp5yn?lat=' + (String)altLat + '&lon=' + (String)altLon + '&zoom=12" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
     String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
     String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
 //  <<<<<<<<<< Begin Built 3dayfcstTile >>>>>>>>>>
@@ -974,7 +973,7 @@ void PostPoll() {
 	my3day += '</tr></table>'
 
 	if(my3day.length() + 27 > 1024) {
-	    my3day = 'Too much data to display.</br></br>Current length (' + mywtile.length() + ') exceeds maximum tile length by ' + 1024 - my3day.length() - 27 + ' characters.'
+	    my3day = 'Too much data to display.</br></br>Current length (' + my3day.length() + ') exceeds maximum tile length by ' + 1024 - my3day.length() - 27 + ' characters.'
 	}else if((my3day.length() + OWMIcon.length()) < 1025) {
 	    my3day += OWMIcon
 	}else if((my3day.length() + OWMIcon2.length()) < 1025) {
@@ -1006,7 +1005,7 @@ void buildweatherSummary() {
 // >>>>>>>>>> End Post-Poll Routines <<<<<<<<<<
 void buildMyText() {
     //  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
-    String OWMIcon = '<a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
+    String OWMIcon = '<a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + (String)altLat + '&lon=' + (String)altLon + '&zoom=12" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
     String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
     String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
 
@@ -1025,7 +1024,7 @@ void buildMyText() {
 	    wgust = myGetData('wind_gust').toBigDecimal()
 	}
 
-	String mytextb = '<span style="display:inline"><a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + altLat + '&lon=' + altLon + '&zoom=12" target="_blank">' + myGetData('city') + '</a><br>'
+	String mytextb = '<span style="display:inline"><a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + (String)altLat + '&lon=' + (String)altLon + '&zoom=12" target="_blank">' + myGetData('city') + '</a><br>'
 	String mytextm1 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
 	String mytextm2 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink2')) + alertStyleClose
 	String mytexte = String.format(myGetData('ddisp_twd'), myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + sIMGS + myGetData('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline">'
@@ -1385,15 +1384,15 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 	Boolean aFCC = true
 	Double l
 	String bwn
-	def sunRiseSet	    = parseJson(myGetData('sunRiseSet')).results
+	Map sunRiseSet	    = parseJson(myGetData('sunRiseSet')).results
 	def tZ		    = TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
 	String lT		 = new Date().format('yyyy-MM-dd\'T\'HH:mm:ssXXX', tZ)
 	Long localeMillis	 = getEpoch(lT)
-	Long twilight_beginMillis = getEpoch(sunRiseSet.civil_twilight_begin)
-	Long sunriseTimeMillis    = getEpoch(sunRiseSet.sunrise)
-	Long noonTimeMillis       = getEpoch(sunRiseSet.solar_noon)
-	Long sunsetTimeMillis     = getEpoch(sunRiseSet.sunset)
-	Long twilight_endMillis   = getEpoch(sunRiseSet.civil_twilight_end)
+	Long twilight_beginMillis = getEpoch((String)sunRiseSet.civil_twilight_begin)
+	Long sunriseTimeMillis    = getEpoch((String)sunRiseSet.sunrise)
+	Long noonTimeMillis       = getEpoch((String)sunRiseSet.solar_noon)
+	Long sunsetTimeMillis     = getEpoch((String)sunRiseSet.sunset)
+	Long twilight_endMillis   = getEpoch((String)sunRiseSet.civil_twilight_end)
 	Long twiStartNextMillis   = twilight_beginMillis + 86400000L // = 24*60*60*1000 --> one day in milliseconds
 	Long sunriseNextMillis    = sunriseTimeMillis + 86400000L
 	Long noonTimeNextMillis   = noonTimeMillis + 86400000L
@@ -1678,7 +1677,7 @@ def updateCheck()
 {
 	def paramsUD = [uri: 'https://raw.githubusercontent.com/Scottma61/Hubitat/master/docs/version2.json'] //https://hubitatcommunity.github.io/???/version2.json"]
 
- 	asynchttpGet('updateCheckHandler', paramsUD)
+	asynchttpGet('updateCheckHandler', paramsUD)
 }
 
 void updateCheckHandler(resp, data) {
@@ -1691,7 +1690,8 @@ void updateCheckHandler(resp, data) {
 		// log.warn ' Version Checking - Response Data: $respUD'   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
 		state.Copyright = respUD.copyright
 		// uses reformattted 'version2.json'
-		String newVer = padVer(respUD.driver.(state.InternalName).ver)
+		String Ver = (String)respUD.driver.(state.InternalName).ver
+		String newVer = padVer(Ver)
 		String currentVer = padVer(version())
 		state.UpdateInfo = (respUD.driver.(state.InternalName).updated)
 		// log.debug 'updateCheck: ${respUD.driver.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}'
@@ -1702,16 +1702,16 @@ void updateCheckHandler(resp, data) {
 				if (descTextEnable) log.warn '** This Driver is no longer supported by ${respUD.author} **'
 				break
 			case { it > currentVer}:
-				state.Status = '<b>New Version Available (Version: ' + respUD.driver.(state.InternalName).ver + ')</b>'
-				if (descTextEnable) log.warn '** There is a newer version of this Driver available  (Version: ' + respUD.driver.(state.InternalName).ver + ') **'
-				if (descTextEnable) log.warn '** ' + state.UpdateInfo + ' **'
+				state.Status = '<b>New Version Available (Version: ' + Ver + ')</b>'
+				if (descTextEnable) log.warn '** There is a newer version of this Driver available  (Version: ' + Ver + ') **'
+				if (descTextEnable) log.warn '** ' + (String)state.UpdateInfo + ' **'
 				break
 			case { it < currentVer}:
-				state.Status = '<b>You are using a Test version of this Driver (Expecting: ' + respUD.driver.(state.InternalName).ver + ')</b>'
-				if (descTextEnable) log.warn 'You are using a Test version of this Driver (Expecting: ' + respUD.driver.(state.InternalName).ver + ')'
+				state.Status = '<b>You are using a Test version of this Driver (Expecting: ' + Ver + ')</b>'
+				if (descTextEnable) log.warn 'You are using a Test version of this Driver (Expecting: ' + Ver + ')'
 				break
 			default:
-				state.Status = 'Current Version: ' + respUD.driver.(state.InternalName).ver
+				state.Status = 'Current Version: ' + Ver
 				if (descTextEnable) log.info 'You are using the current version of this driver'
 				break
 		}
