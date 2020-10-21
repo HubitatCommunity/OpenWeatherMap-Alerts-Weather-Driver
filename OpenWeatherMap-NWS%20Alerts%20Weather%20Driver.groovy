@@ -961,9 +961,8 @@ void buildMyText() {
     //  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
 //	https://tinyurl.com/h7pp5yn points to https://openweathermap.org/weathermap
 	String OWMIcon = '<a href="https://tinyurl.com/h7pp5yn?lat=' + (String)altLat + '&lon=' + (String)altLon + '&zoom=12" target="_blank">' + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
-
-    String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
-    String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
+	String OWMIcon2 = '<a href="https://openweathermap.org" target="_blank">' + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
+	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
 
     if(myTilePublish){ // don't bother setting these values if it's not enabled
 	Boolean gitclose = (myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))
@@ -980,7 +979,7 @@ void buildMyText() {
 	    wgust = myGetData('wind_gust').toBigDecimal()
 	}
 
-	String mytextb = '<span style="display:inline"><a href="https://openweathermap.org/weathermap?basemap=map&cities=true&layer=temperature&lat=' + (String)altLat + '&lon=' + (String)altLon + '&zoom=12" target="_blank">' + myGetData('city') + '</a><br>'
+	String mytextb = '<span style="display:inline"><a href="https://tinyurl.com/h7pp5yn?lat=' + (String)altLat + '&lon=' + (String)altLon + '&zoom=12" target="_blank">' + myGetData('city') + '</a><br>'
 	String mytextm1 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
 	String mytextm2 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink2')) + alertStyleClose
 	String mytexte = String.format(myGetData('ddisp_twd'), myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + sIMGS + myGetData('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline">'
