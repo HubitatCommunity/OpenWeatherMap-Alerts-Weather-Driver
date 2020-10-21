@@ -264,11 +264,12 @@ void pollSunRiseSet() {
 }
 
 void sunRiseSetHandler(resp, data) {
-	if(ifreInstalled()) { updated(); return }
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
 		sunRiseSet = resp.getJson().results
 		myUpdData('sunRiseSet', resp.data)
 		LOGINFO('Sunrise-Sunset Data: ' + sunRiseSet)
+		if(ifreInstalled()) { updated(); return }
+
 		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 		String tfmt1='HH:mm'
 		myUpdData('riseTime', new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
@@ -300,24 +301,24 @@ void pollOWM() {
 //	altLat = "42.8666667"
 //	altLon = "-106.3125"
 
-	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey ]
+    ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey ]
     LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
     asynchttpGet('pollOWMHandler', ParamsOWM)
 }
 
 void pollOWMHandler(resp, data) {
-    if(ifreInstalled()) { updated(); return }
     LOGINFO('Polling OpenWeatherMap.org')
     if(resp.getStatus() != 200 && resp.getStatus() != 207) {
 	LOGWARN('Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey)
 	LOGWARN(resp.getStatus() + sCOLON + resp.getErrorMessage())
-	} else {
+    } else {
 	Map owm = parseJson(resp.data)
 	LOGINFO('OpenWeatherMap Data: ' + owm.toString())
+	if(ifreInstalled()) { updated(); return }
 
-	fotime = (owm?.current?.dt==null) ? new Date() : new Date((Long)owm.current.dt * 1000L)
+	Date fotime = (owm?.current?.dt==null) ? new Date() : new Date((Long)owm.current.dt * 1000L)
 	myUpdData('fotime', fotime.toString())
-	futime = new Date()
+	Date futime = new Date()
 	myUpdData('futime', futime.toString())
 	myUpdData('fotime', fotime.toString())
 	myUpdData(sSUMLST, futime.format(myGetData('timeFormat'), TimeZone.getDefault()).toString())
@@ -1342,7 +1343,7 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 	Boolean aFCC = true
 	Double l
 	String bwn
-	def sunRiseSet	    = parseJson(myGetData('sunRiseSet')).results
+	Map sunRiseSet	    = parseJson(myGetData('sunRiseSet')).results
 	def tZ		    = TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
 	String lT		 = new Date().format('yyyy-MM-dd\'T\'HH:mm:ssXXX', tZ)
 	Long localeMillis	 = getEpoch(lT)
@@ -1450,7 +1451,7 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 
 private Long getEpoch (String aTime) {
 	def tZ = TimeZone.getDefault()
-	def localeTime = new Date().parse('yyyy-MM-dd\'T\'HH:mm:ssXXX', aTime, tZ)
+	Date localeTime = new Date().parse('yyyy-MM-dd\'T\'HH:mm:ssXXX', aTime, tZ)
 	Long localeMillis = localeTime.getTime()
 	return (localeMillis)
 }
@@ -1631,7 +1632,7 @@ void sendEventPublish(evt)	{
 ]
 
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
-def updateCheck()
+void updateCheck()
 {
 	def paramsUD = [uri: 'https://raw.githubusercontent.com/Scottma61/Hubitat/master/docs/version2.json'] //https://hubitatcommunity.github.io/???/version2.json"]
 
@@ -1644,7 +1645,7 @@ void updateCheckHandler(resp, data) {
 	Boolean descTextEnable = settings.logSet ?: false
 
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
-		def respUD = parseJson(resp.data)
+		Map respUD = parseJson(resp.data)
 		// log.warn ' Version Checking - Response Data: $respUD'   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
 		state.Copyright = respUD.copyright
 		// uses reformattted 'version2.json'
