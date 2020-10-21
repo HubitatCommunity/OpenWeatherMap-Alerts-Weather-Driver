@@ -319,7 +319,7 @@ void pollOWMHandler(resp, data) {
 		myUpdData('fotime', fotime.toString())
 		Date futime = new Date()
 		myUpdData('futime', futime.toString())
-		myUpdData('fotime', fotime.toString())
+
 		myUpdData(sSUMLST, futime.format(myGetData('timeFormat'), TimeZone.getDefault()).toString())
 		myUpdData('Summary_last_poll_date', futime.format(myGetData('dateFormat'), TimeZone.getDefault()).toString())
 		myUpdData('currDate', new Date().format('yyyy-MM-dd', TimeZone.getDefault()))
