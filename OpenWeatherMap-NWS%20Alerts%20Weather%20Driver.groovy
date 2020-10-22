@@ -1,6 +1,6 @@
 /*
-	OpenWeatherMap-NWS Alerts Weather Driver
-	Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-NWS%2520Alerts%2520Weather%2520Driver.groovy
+	OpenWeatherMap-Alerts Weather Driver
+	Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy
 	Copyright 2020 @Matthew (Scottma61)
 
 	This driver has morphed many, many times, so the genesis is very blurry now.  It stated as a WeatherUnderground
@@ -99,7 +99,7 @@ metadata {
 	definition (name: 'OpenWeatherMap-NWS Alerts Weather Driver',
 		namespace: 'Matthew',
 		author: 'Scottma61',
-		importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-NWS%2520Alerts%2520Weather%2520Driver.groovy') {
+		importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy') {
 		capability 'Sensor'
 		capability 'Temperature Measurement'
 		capability 'Illuminance Measurement'
@@ -1655,7 +1655,7 @@ void updateCheck()
 
 void updateCheckHandler(resp, data) {
 
-	state.InternalName = 'OpenWeatherMap-NWS Alerts Weather Driver'
+	state.InternalName = 'OpenWeatherMap-Alerts Weather Driver'
 	Boolean descTextEnable = settings.logSet ?: false
 
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
