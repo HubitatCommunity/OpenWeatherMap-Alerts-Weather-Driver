@@ -1,6 +1,6 @@
 /*
 	OpenWeatherMap-Alerts Weather Driver
-	Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy
+	Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy
 	Copyright 2020 @Matthew (Scottma61)
 
 	This driver has morphed many, many times, so the genesis is very blurry now.  It stated as a WeatherUnderground
@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/21/2020
+	Last Update 10/22/2020
 	{ Left room below to document version changes...}
 
+	V0.3.2	10/22/2020	Removed 'NWS' from driver name, minor bug fixes.
 	V0.3.1	10/21/2020	Improved OWM URLs in the dashboard tiles to pull in location's city code (if available).
 	V0.3.0	10/21/2020	Better OWM URLs in the dashboard tiles.
 	V0.2.9	10/20/2020	Correcting some Tile displays from the last update.
@@ -92,14 +93,14 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-public static String version()      {  return '0.3.1'  }
+public static String version()      {  return '0.3.2'  }
 import groovy.transform.Field
 
 metadata {
-	definition (name: 'OpenWeatherMap-NWS Alerts Weather Driver',
+	definition (name: 'OpenWeatherMap-Alerts Weather Driver',
 		namespace: 'Matthew',
 		author: 'Scottma61',
-		importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-NWS-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy') {
+		importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy') {
 		capability 'Sensor'
 		capability 'Temperature Measurement'
 		capability 'Illuminance Measurement'
@@ -319,7 +320,6 @@ void pollOWMHandler(resp, data) {
 		myUpdData('fotime', fotime.toString())
 		Date futime = new Date()
 		myUpdData('futime', futime.toString())
-		myUpdData('fotime', fotime.toString())
 		myUpdData(sSUMLST, futime.format(myGetData('timeFormat'), TimeZone.getDefault()).toString())
 		myUpdData('Summary_last_poll_date', futime.format(myGetData('dateFormat'), TimeZone.getDefault()).toString())
 		myUpdData('currDate', new Date().format('yyyy-MM-dd', TimeZone.getDefault()))
@@ -534,8 +534,8 @@ void pollOWMHandler(resp, data) {
 
 			String imgT= '<img class="centerImage" src=' + myGetData(sICON)
 			myUpdData('imgName0', imgT + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
-			myUpdData('imgName1', imgT + getImgName(owmDaily[1]?.weather[0]?.id==null ? 999 : owmDaily[1].weather[0].id, sTRU) + imgT1 + sRB)
-			myUpdData('imgName2', imgT + getImgName(owmDaily[2]?.weather[0]?.id==null ? 999 : owmDaily[2].weather[0].id, sTRU) + imgT1 + sRB)
+			myUpdData('imgName1', imgT + getImgName((owmDaily[1]?.weather[0]?.id==null ? 999 : owmDaily[1].weather[0].id), sTRU) + imgT1 + sRB)
+			myUpdData('imgName2', imgT + getImgName((owmDaily[2]?.weather[0]?.id==null ? 999 : owmDaily[2].weather[0].id), sTRU) + imgT1 + sRB)
 		}
 		if(condition_icon_urlPublish) {
 			String imgName1 = getImgName(myGetData('forecast_id1').toInteger(), myGetData('is_day'))
