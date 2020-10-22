@@ -615,6 +615,8 @@ static String adjTemp(temp, Boolean isF, Integer mult_twd){
 void clearAlerts(){
 	myUpdData('noAlert',sTRU)
 	myUpdData('alert', 'No current weather alerts for this area')
+	myUpdData('alertDescr', sBLK)
+	myUpdData('alertSender', sBLK)	
 	//    https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
 	String al3 = '<a style="font-style:italic" href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">'
 	myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
