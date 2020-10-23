@@ -121,7 +121,7 @@ metadata {
 		attribute 'forecastIcon', 'string'    //SharpTool.io
 		attribute 'localSunrise', 'string'    //SharpTool.io  SmartTiles
 		attribute 'localSunset', 'string'     //SharpTool.io  SmartTiles
-		attribute 'pressured', 'string'	      //UNSURE SharpTool.io  SmartTiles
+//		attribute 'pressured', 'string'	      //UNSURE SharpTool.io  SmartTiles
 		attribute 'weather', 'string'	      //SharpTool.io  SmartTiles
 		attribute 'weatherIcon', 'string'     //SharpTool.io  SmartTiles
 		attribute 'weatherIcons', 'string'    //Hubitat  openWeather
@@ -185,10 +185,10 @@ metadata {
 			input 'pollIntervalForecastnight', 'enum', title: 'External Source Poll Interval (nighttime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
 			input 'logSet', 'bool', title: 'Enable extended Logging', description: '<i>Extended logging will turn off automatically after 30 minutes.</i>', required: true, defaultValue: false
 			input 'tempFormat', 'enum', required: true, defaultValue: 'Fahrenheit (°F)', title: 'Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)',  options: ['Fahrenheit (°F)', 'Celsius (°C)']
-			input 'TWDDecimals', 'enum', required: true, defaultValue: '0', title: 'Display decimals for Temperature & Wind Speed', options: [0:'0', 1:'1', 2:'2', 3:'3', 4:'4']
-			input 'RDecimals', 'enum', required: true, defaultValue: '0', title: 'Display decimals for Precipitation', options: [0:'0', 1:'1', 2:'2', 3:'3', 4:'4']
-			input 'PDecimals', 'enum', required: true, defaultValue: '0', title: 'Display decimals for Pressure', options: [0:'0', 1:'1', 2:'2', 3:'3', 4:'4']
-			input 'datetimeFormat', 'enum', required: true, defaultValue: '1', title: 'Display Unit - Date-Time Format',  options: [1:'m/d/yyyy 12 hour (am|pm)', 2:'m/d/yyyy 24 hour', 3:'mm/dd/yyyy 12 hour (am|pm)', 4:'mm/dd/yyyy 24 hour', 5:'d/m/yyyy 12 hour (am|pm)', 6:'d/m/yyyy 24 hour', 7:'dd/mm/yyyy 12 hour (am|pm)', 8:'dd/mm/yyyy 24 hour', 9:'yyyy/mm/dd 24 hour']
+			input 'TWDDecimals', 'enum', required: true, defaultValue: sZERO, title: 'Display decimals for Temperature & Wind Speed', options: [0:sZERO, 1:sONE, 2:'2', 3:'3', 4:'4']
+			input 'RDecimals', 'enum', required: true, defaultValue: sZERO, title: 'Display decimals for Precipitation', options: [0:sZERO, 1:sONE, 2:'2', 3:'3', 4:'4']
+			input 'PDecimals', 'enum', required: true, defaultValue: sZERO, title: 'Display decimals for Pressure', options: [0:sZERO, 1:sONE, 2:'2', 3:'3', 4:'4']
+			input 'datetimeFormat', 'enum', required: true, defaultValue: sONE, title: 'Display Unit - Date-Time Format',  options: [1:'m/d/yyyy 12 hour (am|pm)', 2:'m/d/yyyy 24 hour', 3:'mm/dd/yyyy 12 hour (am|pm)', 4:'mm/dd/yyyy 24 hour', 5:'d/m/yyyy 12 hour (am|pm)', 6:'d/m/yyyy 24 hour', 7:'dd/mm/yyyy 12 hour (am|pm)', 8:'dd/mm/yyyy 24 hour', 9:'yyyy/mm/dd 24 hour']
 			input 'distanceFormat', 'enum', required: true, defaultValue: 'Miles (mph)', title: 'Display Unit - Distance/Speed: Miles, Kilometers, knots or meters',  options: ['Miles (mph)', 'Kilometers (kph)', 'knots', 'meters (m/s)']
 			input 'pressureFormat', 'enum', required: true, defaultValue: 'Inches', title: 'Display Unit - Pressure: Inches or Millibar/Hectopascal',  options: ['Inches', 'Millibar', 'Hectopascal']
 			input 'rainFormat', 'enum', required: true, defaultValue: 'Inches', title: 'Display Unit - Precipitation: Inches or Millimeters',  options: ['Inches', 'Millimeters']
@@ -228,6 +228,7 @@ metadata {
 @Field static final String sMINUS='-'
 @Field static final String sCOLON=':'
 @Field static final String sZERO='0'
+@Field static final String sONE='1'
 @Field static final String sDOT='.'
 @Field static final String sICON='iconLocation'
 @Field static final String sTMETR='tMetric'
@@ -804,7 +805,7 @@ void PostPoll() {
 	sendEvent(name: 'humidity', value: myGetData('humidity').toBigDecimal(), unit: '%')
 	sendEvent(name: 'illuminance', value: myGetData('illuminance').toInteger(), unit: 'lx')
 	sendEvent(name: 'pressure', value: myGetData('pressure').toBigDecimal(), unit: myGetData(sPMETR))
-	sendEvent(name: 'pressured', value: String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
+//	sendEvent(name: 'pressured', value: String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
 	sendEvent(name: sTEMP, value: myGetData(sTEMP).toBigDecimal(), unit: myGetData(sTMETR))
 	sendEvent(name: 'ultravioletIndex', value: myGetData('ultravioletIndex').toBigDecimal(), unit: 'uvi')
 	sendEvent(name: 'feelsLike', value: myGetData('feelsLike').toBigDecimal(), unit: myGetData(sTMETR))
@@ -1007,7 +1008,7 @@ void buildMyText() {
 		if(mytext.length() > 1024) {
 			Integer iconfilepath = (sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled).length()
 			Integer excess = (mytext.length() - 1024)
-			Integer removeicons    // = 0
+			Integer removeicons
 			Integer ics = iconfilepath + iconCloseStyled.length()
 			if((excess - ics + 11) < 0) {
 				removeicons = 1  //Remove sunset
@@ -1163,7 +1164,7 @@ void initMe() {
 	String PDecimals = (settings.PDecimals ?: sZERO)
 	String RDecimals = (settings.RDecimals ?: sZERO)
 	setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
-	ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey ]
+	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey ]
 	LOGINFO('Poll OpenWeatherMap.org Location: ' + ParamsOWMl)
 	asynchttpGet('pollOWMlHandler', ParamsOWMl)
 }
@@ -1210,7 +1211,7 @@ void initialize_poll() {
 		LOGINFO('MANUAL FORECAST POLLING ONLY')
 	} else {
 		myPoll = myPoll.replace(sSPC,sBLK)
-		String mySched = "${dsseconds} ${minutes60} ${hours3/3} * * ? *"
+		String mySched
 		LOGINFO('pollInterval: ' + myPoll)
 		switch(myPoll) {
 		case '2Minutes':
@@ -1232,6 +1233,7 @@ void initialize_poll() {
 			mySched = "${dsseconds} ${minutes60} * * * ? *"
 			break
 		case '3Hours':
+		default:
 			mySched = "${dsseconds} ${minutes60} ${hours3}/3 * * ? *"
 		}
 		schedule(mySched, pollOWM)
@@ -1245,12 +1247,12 @@ void pollData() {
 // ************************************************************************************************
 
 void setDateTimeFormats(String formatselector){
-	String mSel = formatselector ?: '1'
+	String mSel = formatselector ?: sONE
 	String DTFormat
 	String dateFormat
 	String timeFormat
 	switch(mSel) {
-		case '1': DTFormat = 'M/d/yyyy h:mm a';   dateFormat = 'M/d/yyyy';   timeFormat = 'h:mm a'; break
+		case sONE: DTFormat = 'M/d/yyyy h:mm a';   dateFormat = 'M/d/yyyy';   timeFormat = 'h:mm a'; break
 		case '2': DTFormat = 'M/d/yyyy HH:mm';    dateFormat = 'M/d/yyyy';   timeFormat = 'HH:mm';  break
 		case '3': DTFormat = 'MM/dd/yyyy h:mm a'; dateFormat = 'MM/dd/yyyy'; timeFormat = 'h:mm a'; break
 		case '4': DTFormat = 'MM/dd/yyyy HH:mm';  dateFormat = 'MM/dd/yyyy'; timeFormat = 'HH:mm';  break
@@ -1314,39 +1316,39 @@ void setDisplayDecimals(String TWDDisp, String PressDisp, String RainDisp) {
 	String ddisp_r
 	String mult_r
 	switch(TWDDisp) {
-		case '0': ddisp_twd = '%3.0f'; mult_twd = '1'; break
-		case '1': ddisp_twd = '%3.1f'; mult_twd = '10'; break
+		case sZERO: ddisp_twd = '%3.0f'; mult_twd = sONE; break
+		case sONE: ddisp_twd = '%3.1f'; mult_twd = '10'; break
 		case '2': ddisp_twd = '%3.2f'; mult_twd = '100'; break
 		case '3': ddisp_twd = '%3.3f'; mult_twd = '1000'; break
 		case '4': ddisp_twd = '%3.4f'; mult_twd = '10000'; break
-		default: ddisp_twd = '%3.0f'; mult_twd = '1'; break
+		default: ddisp_twd = '%3.0f'; mult_twd = sONE; break
 	}
 	myUpdData('ddisp_twd', ddisp_twd)
 	myUpdData('mult_twd', mult_twd)
 	switch(PressDisp) {
-		case '0': ddisp_p = '%,4.0f'; mult_p = '1'; break
-		case '1': ddisp_p = '%,4.1f'; mult_p = '10'; break
+		case sZERO: ddisp_p = '%,4.0f'; mult_p = sONE; break
+		case sONE: ddisp_p = '%,4.1f'; mult_p = '10'; break
 		case '2': ddisp_p = '%,4.2f'; mult_p = '100'; break
 		case '3': ddisp_p = '%,4.3f'; mult_p = '1000'; break
 		case '4': ddisp_p = '%,4.4f'; mult_p = '10000'; break
-		default: ddisp_p = '%,4.0f'; mult_p = '1'; break
+		default: ddisp_p = '%,4.0f'; mult_p = sONE; break
 	}
 	myUpdData('ddisp_p', ddisp_p)
 	myUpdData('mult_p', mult_p)
 	switch(RainDisp) {
-		case '0': ddisp_r = '%2.0f'; mult_r = '1'; break
-		case '1': ddisp_r = '%2.1f'; mult_r = '10'; break
+		case sZERO: ddisp_r = '%2.0f'; mult_r = sONE; break
+		case sONE: ddisp_r = '%2.1f'; mult_r = '10'; break
 		case '2': ddisp_r = '%2.2f'; mult_r = '100'; break
 		case '3': ddisp_r = '%2.3f'; mult_r = '1000'; break
 		case '4': ddisp_r = '%2.4f'; mult_r = '10000'; break
-		default: ddisp_r = '%2.0f'; mult_r = '1'; break
+		default: ddisp_r = '%2.0f'; mult_r = sONE; break
 	}
 	myUpdData('ddisp_r', ddisp_r)
 	myUpdData('mult_r', mult_r)
 }
 
 def estimateLux(Integer condition_id, Integer cloud)     {
-	Long lux // = 0L
+	Long lux
 	Boolean aFCC = true
 	Double l
 	String bwn
@@ -1429,7 +1431,8 @@ def estimateLux(Integer condition_id, Integer cloud)     {
 		if(!cloud){
 			Map LUitem = LUTable.find{ (Integer)it.id == condition_id }
 			if (LUitem)    {
-				cCF = (LUitem ? (LUitem.luxpercent / 3d) : 0.998d)
+				//cCF = (LUitem ? (LUitem.luxpercent / 3d) : 0.998d)
+				cCF = LUitem.luxpercent
 				cCT = ' using estimated cloud cover based on condition.'
 			} else {
 				cCF = 1.0
@@ -1639,18 +1642,14 @@ void sendEventPublish(evt)	{
 ]
 
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
-void updateCheck()
-{
-	def paramsUD = [uri: 'https://raw.githubusercontent.com/Scottma61/Hubitat/master/docs/version2.json'] //https://hubitatcommunity.github.io/???/version2.json"]
-
+void updateCheck() {
+	Map paramsUD = [uri: 'https://raw.githubusercontent.com/Scottma61/Hubitat/master/docs/version2.json'] //https://hubitatcommunity.github.io/???/version2.json"]
 	asynchttpGet('updateCheckHandler', paramsUD)
 }
 
 void updateCheckHandler(resp, data) {
-
 	state.InternalName = 'OpenWeatherMap-Alerts Weather Driver'
 	Boolean descTextEnable = settings.logSet ?: false
-
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
 		Map respUD = parseJson(resp.data)
 		// log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
@@ -1661,10 +1660,9 @@ void updateCheckHandler(resp, data) {
 		String currentVer = padVer(version())
 		state.UpdateInfo = (respUD.driver.(state.InternalName).updated)
 		// log.debug 'updateCheck: ${respUD.driver.(state.InternalName).ver}, $state.UpdateInfo, ${respUD.author}'
-
 		switch(newVer) {
 			case { it == 'NLS'}:
-				state.Status = '<b>** This Driver is no longer supported by ${respUD.author}  **</b>'
+				state.Status = '<b>** This Driver is no longer supported by ' + respUD.author +'  **</b>'
 				if (descTextEnable) log.warn '** This Driver is no longer supported by ${respUD.author} **'
 				break
 			case { it > currentVer}:
@@ -1681,7 +1679,6 @@ void updateCheckHandler(resp, data) {
 				if (descTextEnable) log.info 'You are using the current version of this driver'
 				break
 		}
-
 	} else {
 		log.error 'Something went wrong: CHECK THE JSON FILE AND IT\'S URI'
 	}
