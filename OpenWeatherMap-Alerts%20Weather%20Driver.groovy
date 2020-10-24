@@ -301,7 +301,7 @@ void pollOWM() {
 		LOGWARN('OpenWeatherMap API Key not found.  Please configure in preferences.')
 		return
 	}
-	def ParamsOWM
+	Map ParamsOWM
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
 //	String altLat = "42.8666667"
 //	String altLon = "-106.3125"
@@ -1325,7 +1325,7 @@ void setDisplayDecimals(String TWDDisp, String PressDisp, String RainDisp) {
 	myUpdData('mult_twd', mult_twd)
 	switch(PressDisp) {
 		case sZERO: ddisp_p = '%,4.0f'; mult_p = sONE; break
-		case zONE: ddisp_p = '%,4.1f'; mult_p = '10'; break
+		case sONE: ddisp_p = '%,4.1f'; mult_p = '10'; break
 		case '2': ddisp_p = '%,4.2f'; mult_p = '100'; break
 		case '3': ddisp_p = '%,4.3f'; mult_p = '1000'; break
 		case '4': ddisp_p = '%,4.4f'; mult_p = '10000'; break
