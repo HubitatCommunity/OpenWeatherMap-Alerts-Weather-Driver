@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/23/2020
+	Last Update 10/24/2020
 	{ Left room below to document version changes...}
 
+	V0.3.4	10/24/2020	Added indicator of multiple alerts in tiles. Minor bug fixes (by @nh.schottfam).
 	V0.3.3	10/23/2020	Code optimizations and minor bug fixes (by @nh.schottfam).
 	V0.3.2	10/22/2020	Removed 'NWS' from driver name, minor bug fixes.
 	V0.3.1	10/21/2020	Improved OWM URLs in the dashboard tiles to pull in location's city code (if available).
@@ -94,7 +95,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.3.3'  }
+static String version()	{  return '0.3.4'  }
 import groovy.transform.Field
 
 metadata {
@@ -301,7 +302,7 @@ void pollOWM() {
 		LOGWARN('OpenWeatherMap API Key not found.  Please configure in preferences.')
 		return
 	}
-	def ParamsOWM
+	Map ParamsOWM
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
 //	String altLat = "42.8666667"
 //	String altLon = "-106.3125"
@@ -556,8 +557,14 @@ void pollOWMHandler(resp, data) {
 				if(curAl=='No current weather alerts for this area') {
 					clearAlerts()
 				}else{
+					Integer alertCnt = 0
+					for(int i = 1;i<10;i++) {
+						if(owm?.alerts[i]?.event!=null) {
+							alertCnt = i
+						}
+					}
 					myUpdData('noAlert',sFLS)
-					myUpdData('alert', curAl)
+					myUpdData('alert', curAl + (alertCnt>0 ? ' +' + alertCnt.toString() : sBLK))
 					myUpdData('alertDescr', curAlDescr)
 					myUpdData('alertSender', curAlSender)
 				//	https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
@@ -1325,7 +1332,7 @@ void setDisplayDecimals(String TWDDisp, String PressDisp, String RainDisp) {
 	myUpdData('mult_twd', mult_twd)
 	switch(PressDisp) {
 		case sZERO: ddisp_p = '%,4.0f'; mult_p = sONE; break
-		case zONE: ddisp_p = '%,4.1f'; mult_p = '10'; break
+		case sONE: ddisp_p = '%,4.1f'; mult_p = '10'; break
 		case '2': ddisp_p = '%,4.2f'; mult_p = '100'; break
 		case '3': ddisp_p = '%,4.3f'; mult_p = '1000'; break
 		case '4': ddisp_p = '%,4.4f'; mult_p = '10000'; break
