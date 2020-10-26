@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/24/2020
+	Last Update 10/25/2020
 	{ Left room below to document version changes...}
 
+	V0.3.5	10/25/2020	Bug fixes for null JSON returns.
 	V0.3.4	10/24/2020	Added indicator of multiple alerts in tiles. Minor bug fixes (by @nh.schottfam).
 	V0.3.3	10/23/2020	Code optimizations and minor bug fixes (by @nh.schottfam).
 	V0.3.2	10/22/2020	Removed 'NWS' from driver name, minor bug fixes.
@@ -95,7 +96,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.3.4'  }
+static String version()	{  return '0.3.5'  }
 import groovy.transform.Field
 
 metadata {
@@ -265,17 +266,20 @@ void pollSunRiseSet() {
 	LOGINFO('Polling Sunrise-Sunset.org')
 	Map requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0' ]
 	if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0&date=' + currDate ]}
-	LOGINFO('Poll Sunrise-Sunset: ' + requestParams)
+	LOGINFO('Poll Sunrise-Sunset: ' + requestParams.toString())
 	asynchttpGet('sunRiseSetHandler', requestParams)
 }
 
 void sunRiseSetHandler(resp, data) {
 	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
 		Map sunRiseSet = resp.getJson().results
-		myUpdData('sunRiseSet', resp.data)
-		LOGINFO('Sunrise-Sunset Data: ' + sunRiseSet)
+		myUpdData('sunRiseSet', resp.data.toString())
+		LOGINFO('Sunrise-Sunset Data: ' + sunRiseSet.toString())
 		if(ifreInstalled()) { updated(); return }
-
+		if(myGetData('sunRiseSet')==sNULL) {
+			pauseExecution(1000)
+			pollSunRiseSet()
+		}
 		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 		String tfmt1='HH:mm'
 		myUpdData('riseTime', new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
@@ -321,6 +325,10 @@ void pollOWMHandler(resp, data) {
 		Map owm = parseJson(resp.data)
 		LOGINFO('OpenWeatherMap Data: ' + owm.toString())
 		if(ifreInstalled()) { updated(); return }
+		if(owm.toString()==sNULL) {
+			pauseExecution(1000)
+			pollOWM()
+		}
 		Date fotime = (owm?.current?.dt==null) ? new Date() : new Date((Long)owm.current.dt * 1000L)
 		myUpdData('fotime', fotime.toString())
 		Date futime = new Date()
@@ -1169,11 +1177,13 @@ void initMe() {
 	String PDecimals = (settings.PDecimals ?: sZERO)
 	String RDecimals = (settings.RDecimals ?: sZERO)
 	setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
+	pollOWMl()
+}
+void pollOWMl() {
 	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey ]
 	LOGINFO('Poll OpenWeatherMap.org Location: ' + ParamsOWMl)
 	asynchttpGet('pollOWMlHandler', ParamsOWMl)
 }
-
 void pollOWMlHandler(resp, data) {
 	LOGINFO('Polling OpenWeatherMap.org Location')
 	if(resp.getStatus() != 200 && resp.getStatus() != 207) {
@@ -1182,6 +1192,10 @@ void pollOWMlHandler(resp, data) {
 		myUpdData('OWML',sSPC)
 	}else{
 		Map owml = parseJson(resp.data)
+		if(owml.toString()==sNULL) {
+			pauseExecution(1000)
+			pollOWMl()
+		}
 		LOGINFO('OpenWeatherMap Location Data: ' + owml.toString())
 		myUpdData('OWML',(owml?.list[0]?.id==null ? sSPC : owml.list[0].id.toString()))
 		LOGINFO('OWM Location City Code: ' + myGetData('OWML'))
