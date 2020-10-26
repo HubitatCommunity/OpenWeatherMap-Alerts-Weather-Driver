@@ -4,7 +4,7 @@
 	Copyright 2020 @Matthew (Scottma61)
 
 	This driver has morphed many, many times, so the genesis is very blurry now.  It stated as a WeatherUnderground
-	driver, then when they restricted their API it morphed into an APIXU driver.  When APIXU ceased it becaome a
+	driver, then when they restricted their API it morphed into an APIXU driver.  When APIXU ceased it became a
 	Dark Sky driver .... and now that Dark Sky is going away it is morphing into a OpenWeatherMap driver.
 
 	Many people contributed to the creation of this driver.  Significant contributors include:
@@ -279,6 +279,7 @@ void sunRiseSetHandler(resp, data) {
 		if(myGetData('sunRiseSet')==sNULL) {
 			pauseExecution(1000)
 			pollSunRiseSet()
+			return
 		}
 		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 		String tfmt1='HH:mm'
@@ -328,6 +329,7 @@ void pollOWMHandler(resp, data) {
 		if(owm.toString()==sNULL) {
 			pauseExecution(1000)
 			pollOWM()
+			return
 		}
 		Date fotime = (owm?.current?.dt==null) ? new Date() : new Date((Long)owm.current.dt * 1000L)
 		myUpdData('fotime', fotime.toString())
@@ -566,7 +568,7 @@ void pollOWMHandler(resp, data) {
 					clearAlerts()
 				}else{
 					Integer alertCnt = 0
-					for(int i = 1;i<10;i++) {
+					for(Integer i = 1;i<10;i++) {
 						if(owm?.alerts[i]?.event!=null) {
 							alertCnt = i
 						}
@@ -995,10 +997,10 @@ void buildMyText() {
 		mytexte+= '<span style="font-size:.9em">'+sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
 		mytexte+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
 		mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '     '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
-		mytexte+= myGetData('humidity') + '%     ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
-		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
+		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '     '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
+		mytexte+= myGetData('humidity') + '%     ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
+		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
+		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
 
 		String mytext = mytextb + mytextm1 + mytexte
 		if((mytext.length() + OWMIcon.length() + 10) < 1025) {
@@ -1056,7 +1058,7 @@ void buildMyText() {
 				mytext+= (removeicons < 3 ? sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled : ' | Precip: ') + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : sBLK) + sBR
 				mytext+= (removeicons < 2 ? sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled : 'Sunrise: ') + myGetData('localSunrise') + '  '
 				mytext+= (removeicons < 1 ? sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled : ' | Sunset: ') + myGetData('localSunset')
-				mytext+= '     Updated ' + myGetData(sSUMLST) + sCSPAN
+				mytext+= '     Updated ' + myGetData(sSUMLST) + sCSPAN
 			}else{
 				LOGINFO('myTile still exceeds 1,024 characters (' + mytext.length() + ') ... removing all formatting.')
 				mytext = myGetData('city') + sBR
@@ -1195,6 +1197,7 @@ void pollOWMlHandler(resp, data) {
 		if(owml.toString()==sNULL) {
 			pauseExecution(1000)
 			pollOWMl()
+			return
 		}
 		LOGINFO('OpenWeatherMap Location Data: ' + owml.toString())
 		myUpdData('OWML',(owml?.list[0]?.id==null ? sSPC : owml.list[0].id.toString()))
