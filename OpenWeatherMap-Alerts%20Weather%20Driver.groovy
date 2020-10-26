@@ -4,7 +4,7 @@
 	Copyright 2020 @Matthew (Scottma61)
 
 	This driver has morphed many, many times, so the genesis is very blurry now.  It stated as a WeatherUnderground
-	driver, then when they restricted their API it morphed into an APIXU driver.  When APIXU ceased it becaome a
+	driver, then when they restricted their API it morphed into an APIXU driver.  When APIXU ceased it became a
 	Dark Sky driver .... and now that Dark Sky is going away it is morphing into a OpenWeatherMap driver.
 
 	Many people contributed to the creation of this driver.  Significant contributors include:
@@ -279,6 +279,7 @@ void sunRiseSetHandler(resp, data) {
 		if(myGetData('sunRiseSet')==sNULL) {
 			pauseExecution(1000)
 			pollSunRiseSet()
+			return
 		}
 		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 		String tfmt1='HH:mm'
@@ -328,6 +329,7 @@ void pollOWMHandler(resp, data) {
 		if(owm.toString()==sNULL) {
 			pauseExecution(1000)
 			pollOWM()
+			return
 		}
 		Date fotime = (owm?.current?.dt==null) ? new Date() : new Date((Long)owm.current.dt * 1000L)
 		myUpdData('fotime', fotime.toString())
@@ -566,7 +568,7 @@ void pollOWMHandler(resp, data) {
 					clearAlerts()
 				}else{
 					Integer alertCnt = 0
-					for(int i = 1;i<10;i++) {
+					for(Integer i = 1;i<10;i++) {
 						if(owm?.alerts[i]?.event!=null) {
 							alertCnt = i
 						}
@@ -1195,6 +1197,7 @@ void pollOWMlHandler(resp, data) {
 		if(owml.toString()==sNULL) {
 			pauseExecution(1000)
 			pollOWMl()
+			return
 		}
 		LOGINFO('OpenWeatherMap Location Data: ' + owml.toString())
 		myUpdData('OWML',(owml?.list[0]?.id==null ? sSPC : owml.list[0].id.toString()))
