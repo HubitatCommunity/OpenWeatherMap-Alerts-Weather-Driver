@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/25/2020
+	Last Update 10/27/2020
 	{ Left room below to document version changes...}
 
+	V0.3.6	10/27/2020	Removed '+' from attribute names.  Three Day Tile now has optional 'Low/High' or 'High/Low' setting.
 	V0.3.5	10/25/2020	Bug fixes for null JSON returns.
 	V0.3.4	10/24/2020	Added indicator of multiple alerts in tiles. Minor bug fixes (by @nh.schottfam).
 	V0.3.3	10/23/2020	Code optimizations and minor bug fixes (by @nh.schottfam).
@@ -96,7 +97,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.3.5'  }
+static String version()	{  return '0.3.6'  }
 import groovy.transform.Field
 
 metadata {
@@ -144,19 +145,19 @@ metadata {
 
 //fcstHighLow
 		attribute 'forecastHigh', 'number'
-		attribute 'forecastHigh+1', 'number'
-		attribute 'forecastHigh+2', 'number'
+		attribute 'forecastHigh1', 'number'
+		attribute 'forecastHigh2', 'number'
 		attribute 'forecastLow', 'number'
-		attribute 'forecastLow+1', 'number'
-		attribute 'forecastLow+2', 'number'
+		attribute 'forecastLow1', 'number'
+		attribute 'forecastLow2', 'number'
 		attribute 'forecastMorn', 'number'
 		attribute 'forecastDay', 'number'
 		attribute 'forecastEve', 'number'
 		attribute 'forecastNight', 'number'
-		attribute 'forecastMorn+1', 'number'
-		attribute 'forecastDay+1', 'number'
-		attribute 'forecastEve+1', 'number'
-		attribute 'forecastNight+1', 'number'
+		attribute 'forecastMorn1', 'number'
+		attribute 'forecastDay1', 'number'
+		attribute 'forecastEve1', 'number'
+		attribute 'forecastNight1', 'number'
 		attribute 'condition_icon_url1', 'string'
 		attribute 'condition_icon_url2', 'string'
 
@@ -208,6 +209,7 @@ metadata {
 				keyname, attribute ->
 				if (settingEnable) {
 					input keyname+'Publish', 'bool', title: attribute.title, required: true, defaultValue: attribute.default, description: sBR+(String)attribute.d+sBR
+					if(keyname == 'threedayTile') input 'threedayLH', 'bool', title: 'Three Day Temp Display', description: '<br>High/Low: On or Low/High: Off<br>', required: true, defaultValue: false
 					if(keyname == 'weatherSummary') input 'summaryType', 'bool', title: 'Full Weather Summary', description: '<br>Full: on or short: off summary?<br>', required: true, defaultValue: false
 				}
 			}
@@ -517,21 +519,21 @@ void pollOWMHandler(resp, data) {
 			myUpdData('forecast_code2', getCondCode(myGetData('forecast_id2').toInteger(), sTRU))
 			myUpdData('forecast_text2', owmDaily[2]?.weather[0]?.description==null ? 'Unknown' : owmDaily[2].weather[0].description.capitalize())
 
-			myUpdData('forecastHigh+1', adjTemp(owmDaily[1]?.temp?.max, isF, mult_twd))
-			myUpdData('forecastHigh+2', adjTemp(owmDaily[2]?.temp?.max, isF, mult_twd))
+			myUpdData('forecastHigh1', adjTemp(owmDaily[1]?.temp?.max, isF, mult_twd))
+			myUpdData('forecastHigh2', adjTemp(owmDaily[2]?.temp?.max, isF, mult_twd))
 
-			myUpdData('forecastLow+1', adjTemp(owmDaily[1]?.temp?.min, isF, mult_twd))
-			myUpdData('forecastLow+2', adjTemp(owmDaily[2]?.temp?.min, isF, mult_twd))
+			myUpdData('forecastLow1', adjTemp(owmDaily[1]?.temp?.min, isF, mult_twd))
+			myUpdData('forecastLow2', adjTemp(owmDaily[2]?.temp?.min, isF, mult_twd))
 		
 			myUpdData('forecastMorn', adjTemp(owmDaily[0]?.temp?.morn, isF, mult_twd))
 			myUpdData('forecastDay', adjTemp(owmDaily[0]?.temp?.day, isF, mult_twd))
 			myUpdData('forecastEve', adjTemp(owmDaily[0]?.temp?.eve, isF, mult_twd))
 			myUpdData('forecastNight', adjTemp(owmDaily[0]?.temp?.night, isF, mult_twd))
 
-			myUpdData('forecastMorn+1', adjTemp(owmDaily[1]?.temp?.morn, isF, mult_twd))
-			myUpdData('forecastDay+1', adjTemp(owmDaily[1]?.temp?.day, isF, mult_twd))
-			myUpdData('forecastEve+1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
-			myUpdData('forecastNight+1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
+			myUpdData('forecastMorn1', adjTemp(owmDaily[1]?.temp?.morn, isF, mult_twd))
+			myUpdData('forecastDay1', adjTemp(owmDaily[1]?.temp?.day, isF, mult_twd))
+			myUpdData('forecastEve1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
+			myUpdData('forecastNight1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
 
 			String imgT= '<img class="centerImage" src=' + myGetData(sICON)
 			myUpdData('imgName0', imgT + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
@@ -849,19 +851,19 @@ void PostPoll() {
 	sendEventPublish(name: 'forecast_text', value: myGetData('forecast_text'))
 	if(fcstHighLowPublish){ // don't bother setting these values if it's not enabled
 		sendEvent(name: 'forecastHigh', value: myGetData('forecastHigh').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastHigh+1', value: myGetData('forecastHigh+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastHigh+2', value: myGetData('forecastHigh+2').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastHigh1', value: myGetData('forecastHigh1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastHigh2', value: myGetData('forecastHigh2').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastLow', value: myGetData('forecastLow').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastLow+1', value: myGetData('forecastLow+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastLow+2', value: myGetData('forecastLow+2').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastLow1', value: myGetData('forecastLow1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastLow2', value: myGetData('forecastLow2').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastMorn', value: myGetData('forecastMorn').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastDay', value: myGetData('forecastDay').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastEve', value: myGetData('forecastEve').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastNight', value: myGetData('forecastNight').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastMorn+1', value: myGetData('forecastMorn+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastDay+1', value: myGetData('forecastDay+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastEve+1', value: myGetData('forecastEve+1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecastNight+1', value: myGetData('forecastNight+1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastMorn1', value: myGetData('forecastMorn1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastDay1', value: myGetData('forecastDay1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastEve1', value: myGetData('forecastEve1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecastNight1', value: myGetData('forecastNight1').toBigDecimal(), unit: myGetData(sTMETR))
 	}
 	sendEventPublish(name: 'illuminated', value: myGetData('illuminated') + ' lx')
 	sendEventPublish(name: 'is_day', value: myGetData('is_day'))
@@ -918,10 +920,17 @@ void PostPoll() {
 		my3day += sTD + myGetData('forecast_text2') + sTDE
 		my3day += '</tr>'
 		my3day += '<tr>'
-		my3day += sTD+'Low/High:'+sTDE
-		my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + sTDE
-		my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow+1').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastHigh+1').toBigDecimal()) + myGetData(sTMETR)  + sTDE
-		my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow+2').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastHigh+2').toBigDecimal()) + myGetData(sTMETR) + sTDE
+		if(myGetData('threedayLH')==sFLS){
+			my3day += sTD+'Low/High:'+sTDE
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + sTDE
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow1').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastHigh1').toBigDecimal()) + myGetData(sTMETR)  + sTDE
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow2').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastHigh2').toBigDecimal()) + myGetData(sTMETR) + sTDE
+		}else{
+			my3day += sTD+'High/Low:'+sTDE
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + sTDE
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh1').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastLow1').toBigDecimal()) + myGetData(sTMETR)  + sTDE
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh2').toBigDecimal()) + myGetData(sTMETR) + '/' + String.format(ddisp_twd, myGetData('forecastLow2').toBigDecimal()) + myGetData(sTMETR) + sTDE
+		}
 		my3day += '</tr>'
 		my3day += '<tr>'
 		my3day += sTD+'Precip:'+sTDE
@@ -1124,6 +1133,7 @@ void initMe() {
 	myUpdData('is_lightOld', myGetData('is_light')) //avoid startup oscilation
 	String city = (settings.city ?: sBLK)
 	myUpdData('city', city)
+	myUpdData('threedayLH', settings.threedayLH ? sTRU : sFLS)
 	Boolean altCoord = (settings.altCoord ?: false)
 	String valtLat = location.latitude.toString().replace(sSPC, sBLK)
 	String valtLon = location.longitude.toString().replace(sSPC, sBLK)
@@ -1629,7 +1639,7 @@ void sendEventPublish(evt)	{
 	]
 
 @Field final Map attributesMap = [
-	'threedayTile':				[title: 'Three Day Forecast Tile', d: 'Display Three Day Forecast Tile?', ty: false, default: sFLS],
+	'threedayTile':				[title: 'Three Day Forecast Tile', d: 'Display Three Day Forecast Tile?', ty: 'string', default: sFLS],
 	'alert':					[title: 'Weather Alert', d: 'Display any weather alert?', ty: false, default: sFLS],
 	'betwixt':					[title: 'Slice of Day', d: 'Display the slice-of-day?', ty: 'string', default: sFLS],
 	'cloud':					[title: 'Cloud', d: 'Display cloud coverage %?', ty: 'number', default: sFLS],
