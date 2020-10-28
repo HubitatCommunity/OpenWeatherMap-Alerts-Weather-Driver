@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/27/2020
+	Last Update 10/28/2020
 	{ Left room below to document version changes...}
 
+	V0.3.8	10/28/2020	Added Probability of Precipitation (PoP) from OWM.  Bug fixes and code and string reductions by @nh.schottfam).
 	V0.3.7	10/27/2020	Bug fixes.
 	V0.3.6	10/27/2020	Removed '+' from attribute names.  Three Day Tile now has optional 'Low/High' or 'High/Low' setting.
 	V0.3.5	10/25/2020	Bug fixes for null JSON returns.
@@ -98,7 +99,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.3.7'  }
+static String version()	{  return '0.3.8'  }
 import groovy.transform.Field
 
 metadata {
@@ -121,61 +122,62 @@ metadata {
 		}
 //	The following attributes may be needed for dashboards that require these attributes,
 //	so they are alway available and shown by default.
-		attribute 'city', 'string'			//Hubitat  OpenWeather  SharpTool.io  SmartTiles
-		attribute 'feelsLike', 'number'		//SharpTool.io  SmartTiles
-		attribute 'forecastIcon', 'string'	//SharpTool.io
-		attribute 'localSunrise', 'string'	//SharpTool.io  SmartTiles
-		attribute 'localSunset', 'string'	//SharpTool.io  SmartTiles
-		attribute 'pressured', 'string'		//UNSURE SharpTool.io  SmartTiles
-		attribute 'weather', 'string'		//SharpTool.io  SmartTiles
-		attribute 'weatherIcon', 'string'	//SharpTool.io  SmartTiles
-		attribute 'weatherIcons', 'string'	//Hubitat  openWeather
-		attribute 'wind', 'number'			//SharpTool.io
-		attribute 'windDirection', 'number'	//Hubitat  OpenWeather
-		attribute 'windSpeed', 'number'		//Hubitat  OpenWeather
+		attribute 'city', sSTR			//Hubitat  OpenWeather  SharpTool.io  SmartTiles
+		attribute 'feelsLike', sNUM		//SharpTool.io  SmartTiles
+		attribute 'forecastIcon', sSTR	//SharpTool.io
+		attribute 'localSunrise', sSTR	//SharpTool.io  SmartTiles
+		attribute 'localSunset', sSTR	//SharpTool.io  SmartTiles
+		attribute 'percentPrecip', sNUM	//SharpTool.io  SmartTiles
+		attribute 'pressured', sSTR		//UNSURE SharpTool.io  SmartTiles
+		attribute 'weather', sSTR		//SharpTool.io  SmartTiles
+		attribute 'weatherIcon', sSTR	//SharpTool.io  SmartTiles
+		attribute 'weatherIcons', sSTR	//Hubitat  openWeather
+		attribute 'wind', sNUM			//SharpTool.io
+		attribute 'windDirection', sNUM	//Hubitat  OpenWeather
+		attribute 'windSpeed', sNUM		//Hubitat  OpenWeather
 
 //	The attributes below are sub-groups of optional attributes.  They need to be listed here to be available
 //alert
-		attribute 'alert', 'string'
-		attribute 'alertTile', 'string'
-		attribute 'alertDescr', 'string'
-		attribute 'alertSender', 'string'
+		attribute 'alert', sSTR
+		attribute 'alertTile', sSTR
+		attribute 'alertDescr', sSTR
+		attribute 'alertSender', sSTR
 
 //threedayTile
-		attribute 'threedayfcstTile', 'string'
+		attribute 'threedayfcstTile', sSTR
 
 //fcstHighLow
-		attribute 'forecastHigh', 'number'
-		attribute 'forecastHigh1', 'number'
-		attribute 'forecastHigh2', 'number'
-		attribute 'forecastLow', 'number'
-		attribute 'forecastLow1', 'number'
-		attribute 'forecastLow2', 'number'
-		attribute 'forecastMorn', 'number'
-		attribute 'forecastDay', 'number'
-		attribute 'forecastEve', 'number'
-		attribute 'forecastNight', 'number'
-		attribute 'forecastMorn1', 'number'
-		attribute 'forecastDay1', 'number'
-		attribute 'forecastEve1', 'number'
-		attribute 'forecastNight1', 'number'
-		attribute 'condition_icon_url1', 'string'
-		attribute 'condition_icon_url2', 'string'
+		attribute 'forecastHigh', sNUM
+		attribute 'forecastHigh1', sNUM
+		attribute 'forecastHigh2', sNUM
+		attribute 'forecastLow', sNUM
+		attribute 'forecastLow1', sNUM
+		attribute 'forecastLow2', sNUM
+		attribute 'forecastMorn', sNUM
+		attribute 'forecastDay', sNUM
+		attribute 'forecastEve', sNUM
+		attribute 'forecastNight', sNUM
+		attribute 'forecastMorn1', sNUM
+		attribute 'forecastDay1', sNUM
+		attribute 'forecastEve1', sNUM
+		attribute 'forecastNight1', sNUM
+		attribute 'condition_icon_url1', sSTR
+		attribute 'condition_icon_url2', sSTR
 
 //controlled with localSunrise
-		attribute 'tw_begin', 'string'
-		attribute 'sunriseTime', 'string'
-		attribute 'noonTime', 'string'
-		attribute 'sunsetTime', 'string'
-		attribute 'tw_end', 'string'
+		attribute 'tw_begin', sSTR
+		attribute 'sunriseTime', sSTR
+		attribute 'noonTime', sSTR
+		attribute 'sunsetTime', sSTR
+		attribute 'tw_end', sSTR
 
 //obspoll
-		attribute 'last_poll_Forecast', 'string' // time the poll was initiated
-		attribute 'last_observation_Forecast', 'string'  // datestamp of the forecast observation
+		attribute 'last_poll_Forecast', sSTR // time the poll was initiated
+		attribute 'last_observation_Forecast', sSTR  // datestamp of the forecast observation
 
 //precipExtended
-		attribute 'rainDayAfterTomorrow', 'number'
-		attribute 'rainTomorrow', 'number'
+		attribute 'rainDayAfterTomorrow', sNUM
+		attribute 'rainTomorrow', sNUM
 
 		command 'pollData'
 	}
@@ -201,15 +203,15 @@ metadata {
 			input 'iconType', 'bool', title: 'Condition Icon: On=Current or Off=Forecast', required: true, defaultValue: false
 			input 'altCoord', 'bool', required: true, defaultValue: false, title: "Override Hub's location coordinates"
 			if (altCoord) {
-				input 'altLat', 'string', title: 'Override location Latitude', required: true, defaultValue: location.latitude.toString(), description: '<br>Enter location Latitude<br>'
-				input 'altLon', 'string', title: 'Override location Longitude', required: true, defaultValue: location.longitude.toString(), description: '<br>Enter location Longitude<br>'
+				input 'altLat', sSTR, title: 'Override location Latitude', required: true, defaultValue: location.latitude.toString(), description: '<br>Enter location Latitude<br>'
+				input 'altLon', sSTR, title: 'Override location Longitude', required: true, defaultValue: location.longitude.toString(), description: '<br>Enter location Longitude<br>'
 			}
 			input 'settingEnable', 'bool', title: '<b>Display All Optional Attributes</b>', description: settingDescr, defaultValue: true
 	//build a Selector for each mapped Attribute or group of attributes
 			attributesMap.each {
 				keyname, attribute ->
 				if (settingEnable) {
-					input keyname+'Publish', 'bool', title: attribute.title, required: true, defaultValue: attribute.default, description: sBR+(String)attribute.d+sBR
+					input keyname+'Publish', 'bool', title: attribute.t, required: true, defaultValue: attribute.defa, description: sBR+(String)attribute.d+sBR
 					if(keyname == 'threedayTile') input 'threedayLH', 'bool', title: 'Three Day Temp Display', description: '<br>High/Low: On or Low/High: Off<br>', required: true, defaultValue: false
 					if(keyname == 'weatherSummary') input 'summaryType', 'bool', title: 'Full Weather Summary', description: '<br>Full: on or short: off summary?<br>', required: true, defaultValue: false
 				}
@@ -260,7 +262,9 @@ metadata {
 @Field static final String sIMGS='<img src='
 @Field static final String sTD='<td>'
 @Field static final String sTDE='</td>'
-
+@Field static final String sSTR='string'
+@Field static final String sNUM='number'
+@Field static final String sNCWA='No current weather alerts for this area'
 
 // <<<<<<<<<< Begin Sunrise-Sunset Poll Routines >>>>>>>>>>
 void pollSunRiseSet() {
@@ -481,7 +485,7 @@ void pollOWMHandler(resp, data) {
 		Integer cloudCover = owm?.current?.clouds==null ? 1 : owm.current.clouds <= 1 ? 1 : owm.current.clouds
 		myUpdData('cloud', cloudCover.toString())
 		myUpdData('vis', (myGetData(sDMETR)!='MPH' ? Math.round(owm?.current?.visibility==null ? 0.01 : owm.current.visibility.toBigDecimal() * 0.001 * mult_twd) / mult_twd : Math.round(owm?.current?.visibility==null ? 0.00 : owm.current.visibility.toBigDecimal() * 0.0006213712 * mult_twd) / mult_twd).toString())
-
+		
 		List owmCweat = owm?.current?.weather
 		myUpdData('condition_id', owmCweat==null || owmCweat[0]?.id==null ? '999' : owmCweat[0].id.toString())
 		myUpdData('condition_code', getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day')))
@@ -497,13 +501,17 @@ void pollOWMHandler(resp, data) {
 		BigDecimal t_p0 = (owmDaily==null || owmDaily[0]?.rain==null ? 0.00 : owmDaily[0].rain) + (owmDaily==null || owmDaily[0]?.snow==null ? 0.00 : owmDaily[0].snow)
 
 		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
-
+		myUpdData('percentPrecip', !owm.daily[0].pop ? sZERO : owm.daily[0].pop.toString())
+		myUpdData('PoP', !owm.daily[0].pop ? sZERO : owm.daily[0].pop.toString())
+		
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTile2Publish)) {
 			BigDecimal t_p1 = (owmDaily[1]?.rain==null ? 0.00 : owmDaily[1].rain) + (owmDaily[1]?.snow==null ? 0.00 : owmDaily[1].snow)
 			BigDecimal t_p2 = (owmDaily[2]?.rain==null ? 0.00 : owmDaily[2].rain) + (owmDaily[2]?.snow==null ? 0.00 : owmDaily[2].snow)
 			myUpdData('Precip0', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
 			myUpdData('Precip1', (Math.round((myGetData(sRMETR) == 'in' ? t_p1 * 0.03937008 : t_p1) * mult_r) / mult_r).toString())
 			myUpdData('Precip2', (Math.round((myGetData(sRMETR) == 'in' ? t_p2 * 0.03937008 : t_p2) * mult_r) / mult_r).toString())
+			myUpdData('PoP1', (!owm.daily[1].pop ? sZERO : owm.daily[1].pop).toString())
+			myUpdData('PoP2', (!owm.daily[2].pop ? sZERO : owm.daily[2].pop).toString())
 		}
 
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
@@ -542,8 +550,6 @@ void pollOWMHandler(resp, data) {
 			myUpdData('imgName2', imgT + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1 + sRB)
 		}
 		if(condition_icon_urlPublish) {
-			String imgName1 = getImgName(myGetData('forecast_id1').toInteger(), myGetData('is_day'))
-			String imgName2 = getImgName(myGetData('forecast_id2').toInteger(), myGetData('is_day'))
 			sendEvent(name: 'condition_icon_url1', value: myGetData(sICON) + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1)
 			sendEvent(name: 'condition_icon_url2', value: myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1)
 		}
@@ -563,11 +569,11 @@ void pollOWMHandler(resp, data) {
 			if(!owm.alerts) {
 				clearAlerts()
 			}else{			
-				String curAl = owm?.alerts[0]?.event==null ? 'No current weather alerts for this area' : owm?.alerts[0]?.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
+				String curAl = owm?.alerts[0]?.event==null ? sNCWA : owm?.alerts[0]?.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
 				String curAlSender = owm?.alerts[0]?.sender_name==null ? sNULL : owm?.alerts[0]?.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
 				String curAlDescr = owm?.alerts[0]?.description==null ? sNULL : owm?.alerts[0]?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
 				LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
-				if(curAl=='No current weather alerts for this area') {
+				if(curAl==sNCWA) {
 					clearAlerts()
 				}else{
 					Integer alertCnt = 0
@@ -590,7 +596,7 @@ void pollOWMHandler(resp, data) {
 				}
 			}
 			//  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-			String alertTile = (myGetData('alert')== 'No current weather alerts for this area' ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null ? '' : ' issued by ' + myGetData('alertSender')) + ' updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
+			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null ? '' : ' issued by ' + myGetData('alertSender')) + ' updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
 			alertTile+= myGetData('alertTileLink') + sBR + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
 			myUpdData('alertTile', alertTile)
 			sendEvent(name: 'alert', value: myGetData('alert'))
@@ -624,8 +630,8 @@ static String adjTemp(temp, Boolean isF, Integer mult_twd){
 
 void clearAlerts(){
 	myUpdData('noAlert',sTRU)
-	myUpdData('alert', 'No current weather alerts for this area')
-	myUpdData('alertDescr', 'No current weather alerts for this area')
+	myUpdData('alert', sNCWA)
+	myUpdData('alertDescr', sNCWA)
 	myUpdData('alertSender', sSPC)
 	//	https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
 	String al3 = '<a style="font-style:italic" href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">'
@@ -741,7 +747,7 @@ static String dumpMapDesc(data, Integer level, List<Boolean> lastLevel, Boolean 
 }
 
 static String myObj(obj){
-	if(obj instanceof String){return 'String'}
+	if(obj instanceof String){return sSTR}
 	else if(obj instanceof Map){return 'Map'}
 	else if(obj instanceof List){return 'List'}
 	else if(obj instanceof ArrayList){return 'ArrayList'}
@@ -803,9 +809,10 @@ void updateLux(Boolean pollAgain=true) {
 // <<<<<<<<<< Begin Post-Poll Routines >>>>>>>>>>
 void PostPoll() {
 	if(ifreInstalled()) { updated(); return }
-	Integer mult_twd=myGetData('mult_twd').toInteger()
-//	Integer mult_p=myGetData('mult_p').toInteger()
-//	Integer mult_r=myGetData('mult_r').toInteger()
+	Integer mult_twd = myGetData('mult_twd')==sNULL ? 1 : myGetData('mult_twd').toInteger()
+	Integer mult_p = myGetData('mult_p')==sNULL ? 1 : myGetData('mult_p').toInteger()
+	Integer mult_r = myGetData('mult_r')==sNULL ? 1 : myGetData('mult_r').toInteger()
+
 	Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
 /*  SunriseSunset Data Elements */
 	String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
@@ -835,6 +842,7 @@ void PostPoll() {
 	if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'city', value: myGetData('city')) }
 	if(dashSharpToolsPublish) { sendEvent(name: 'forecastIcon', value: getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day'))) }
 	if(dashSharpToolsPublish || dashSmartTilesPublish || rainTodayPublish) { sendEvent(name: 'rainToday', value: myGetData('rainToday').toBigDecimal(), unit: myGetData(sRMETR)) }
+	if(dashSharpToolsPublish || dashSmartTilesPublish || percentPrecipPublish) { sendEvent(name: 'percentPrecip', value: myGetData('percentPrecip').toInteger()) }
 	if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'weather', value: myGetData('condition_text')) }
 	if(dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'weatherIcon', value: getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day'))) }
 	if(dashHubitatOWMPublish) { sendEvent(name: "weatherIcons", value: myGetData('OWN_icon')) }
@@ -866,6 +874,8 @@ void PostPoll() {
 		sendEvent(name: 'forecastDay1', value: myGetData('forecastDay1').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastEve1', value: myGetData('forecastEve1').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastNight1', value: myGetData('forecastNight1').toBigDecimal(), unit: myGetData(sTMETR))
+		sendEvent(name: 'forecast_text1', value: myGetData('forecast_text1'))
+		sendEvent(name: 'forecast_text2', value: myGetData('forecast_text2'))
 	}
 	sendEventPublish(name: 'illuminated', value: myGetData('illuminated') + ' lx')
 	sendEventPublish(name: 'is_day', value: myGetData('is_day'))
@@ -935,10 +945,10 @@ void PostPoll() {
 		}
 		my3day += '</tr>'
 		my3day += '<tr>'
-		my3day += sTD+'Precip:'+sTDE
-		my3day += sTD + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
-		my3day += sTD + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip1').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
-		my3day += sTD + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip2').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
+		my3day += sTD+'PoP/Precip:'+sTDE
+		my3day += sTD + myGetData('PoP') + '%/' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
+		my3day += sTD + myGetData('PoP1') + '%/' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
+		my3day += sTD + myGetData('PoP2') + '%/' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
 		my3day += '</tr>'
 		my3day += '</table>'
 		my3day += '<table align="center">'
@@ -970,7 +980,7 @@ void buildweatherSummary() {
 	//  <<<<<<<<<< Begin Built Weather Summary text >>>>>>>>>>
 	if(weatherSummaryPublish){ // don't bother setting these values if it's not enabled
 		String Summary_forecastTemp = ' with a high of ' + String.format(myGetData('ddisp_twd'), myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + ' and a low of ' + String.format(myGetData('ddisp_twd'), myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + '. '
-		String Summary_precip = 'There has been ' + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + (myGetData(sRMETR) == 'in' ? ' inches' : ' millimeters') + ' of ' : ' no ') + 'precipitation today. '
+		String Summary_precip = 'There is a ' + myGetData('percentPrecip') + '% chance of precipitation. '
 		LOGINFO('Summary_precip: ' + Summary_precip)
 		String Summary_vis = 'Visibility is around ' + String.format(myGetData('ddisp_twd'), myGetData('vis').toBigDecimal()) + (myGetData(sDMETR)=='MPH' ? ' miles.' : ' kilometers.')
 		SummaryMessage((Boolean)settings.summaryType, myGetData('Summary_last_poll_date'), myGetData(sSUMLST), Summary_forecastTemp, Summary_precip, Summary_vis)
@@ -1008,10 +1018,10 @@ void buildMyText() {
 		mytexte+= '<span style="font-size:.9em">'+sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
 		mytexte+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
 		mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '     '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
-		mytexte+= myGetData('humidity') + '%     ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
-		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
+		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '    '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
+		mytexte+= myGetData('humidity') + '%    ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + myGetData('percentPrecip') + '%    ' + sIMGS + myGetData(sICON) + 'wr.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
+		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
+		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
 
 		String mytext = mytextb + mytextm1 + mytexte
 		if((mytext.length() + OWMIcon.length() + 10) < 1025) {
@@ -1066,10 +1076,10 @@ void buildMyText() {
 				mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
 				mytext+= (removeicons < 5 ? sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled : 'Bar: ') + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '  '
 				mytext+= (removeicons < 4 ? sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled : ' | Hum: ') + myGetData('humidity') + '%  '
-				mytext+= (removeicons < 3 ? sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled : ' | Precip: ') + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : sBLK) + sBR
+				mytext+= (removeicons < 3 ? sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled : ' | PoP: ') + myGetData('percentPrecip') + '%' + sBR
 				mytext+= (removeicons < 2 ? sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled : 'Sunrise: ') + myGetData('localSunrise') + '  '
 				mytext+= (removeicons < 1 ? sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled : ' | Sunset: ') + myGetData('localSunset')
-				mytext+= '     Updated ' + myGetData(sSUMLST) + sCSPAN
+				mytext+= '     Updated ' + myGetData(sSUMLST) + sCSPAN
 			}else{
 				LOGINFO('myTile still exceeds 1,024 characters (' + mytext.length() + ') ... removing all formatting.')
 				mytext = myGetData('city') + sBR
@@ -1079,7 +1089,7 @@ void buildMyText() {
 				mytext+= myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR)
 				mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
 				mytext+= 'Bar: ' + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR)
-				mytext+= ' | Hum: ' + myGetData('humidity') + '%  ' + ' | Precip: ' + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : sBLK) + sBR
+				mytext+= ' | Hum: ' + myGetData('humidity') + '%  ' + ' | PoP: ' + myGetData('percentPrecip') + '%' + sBR
 				mytext+= 'Sunrise: ' + myGetData('localSunrise') + ' | Sunset:' + myGetData('localSunset') + ' |  Updated:' + myGetData(sSUMLST)
 				if(mytext.length() > 1024) {
 					LOGINFO('myTile even still exceeds 1,024 characters (' + mytext.length() + ') ... truncating.')
@@ -1529,14 +1539,14 @@ void SummaryMessage(Boolean SType, String Slast_poll_date, String Slast_poll_tim
 
 String getImgName(Integer wCode, String iconTOD){
 	Map LUitem = LUTable.find{ (Integer)it.id == wCode }
-	LOGINFO('getImgName Inputs: ' + wCode.toString() + ', ' + iconTOD + ';  Result: ' + (iconTOD==sTRU ? (LUitem ? (String)LUitem.Icond : sNPNG) : (LUitem ? (String)LUitem.Iconn : sNPNG)))
-	return (iconTOD==sTRU ? (LUitem ? (String)LUitem.Icond : sNPNG) : (LUitem ? (String)LUitem.Iconn : sNPNG))
+	LOGINFO('getImgName Inputs: ' + wCode.toString() + ', ' + iconTOD + ';  Result: ' + (iconTOD==sTRU ? (LUitem ? (String)LUitem.Icd : sNPNG) : (LUitem ? (String)LUitem.Icn : sNPNG)))
+	return (iconTOD==sTRU ? (LUitem ? (String)LUitem.Icd : sNPNG) : (LUitem ? (String)LUitem.Icn : sNPNG))
 }
 
 String getCondCode(Integer cid, String iconTOD){
 	Map LUitem = LUTable.find{ (Integer)it.id == cid }
-	LOGINFO('getCondCode Inputs: ' + cid.toString() + ', ' + iconTOD + ';  Result: ' + (iconTOD==sTRU ? (LUitem ? (String)LUitem.stdIcond : sNPNG) : (LUitem ? (String)LUitem.stdIconn : sNPNG)))
-	return (iconTOD==sTRU ? (LUitem ? (String)LUitem.stdIcond : sNPNG) : (LUitem ? (String)LUitem.stdIconn : sNPNG))
+	LOGINFO('getCondCode Inputs: ' + cid.toString() + ', ' + iconTOD + ';  Result: ' + (iconTOD==sTRU ? (LUitem ? (String)LUitem.sId : sNPNG) : (LUitem ? (String)LUitem.sIn : sNPNG)))
+	return (iconTOD==sTRU ? (LUitem ? (String)LUitem.sId : sNPNG) : (LUitem ? (String)LUitem.sIn : sNPNG))
 }
 
 void logCheck(){
@@ -1582,96 +1592,97 @@ void sendEventPublish(evt)	{
 }
 
 @Field final List<Map>	LUTable =	[
-[id: 200, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 201, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 202, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 210, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 211, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 212, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 221, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 230, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 231, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 232, OWMd: s11D, OWMn: s11N, Icond: '38.png', Iconn: '47.png', luxpercent: 0.2, stdIcond: sCTS, stdIconn: sNCTS],
-[id: 300, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 301, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 302, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 310, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 311, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 312, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 313, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 314, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 321, OWMd: '09d.png', OWMn: '09n.png', Icond: s9, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 500, OWMd: '10d.png', OWMn: '09n.png', Icond: s39, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 501, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 502, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 503, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 504, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 511, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 520, OWMd: '10d.png', OWMn: '09n.png', Icond: s39, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 521, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 522, OWMd: '10d.png', OWMn: '10n.png', Icond: s39, Iconn: '11.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 531, OWMd: '10d.png', OWMn: '09n.png', Icond: s39, Iconn: s9, luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 600, OWMd: '13d.png', OWMn: '13n.png', Icond: '13.png', Iconn: '46.png', luxpercent: 0.4, stdIcond: 'flurries', stdIconn: 'nt_snow'],
-[id: 601, OWMd: '13d.png', OWMn: '13n.png', Icond: '14.png', Iconn: '46.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
-[id: 602, OWMd: '13d.png', OWMn: '13n.png', Icond: '16.png', Iconn: '46.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
-[id: 611, OWMd: '13d.png', OWMn: '13n.png', Icond: s9, Iconn: '46.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: 'nt_snow'],
-[id: 612, OWMd: '13d.png', OWMn: '13n.png', Icond: '8.png', Iconn: '46.png', luxpercent: 0.5, stdIcond: 'sleet', stdIconn: 'nt_snow'],
-[id: 613, OWMd: '13d.png', OWMn: '13n.png', Icond: s9, Iconn: '46.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: 'nt_snow'],
-[id: 615, OWMd: '13d.png', OWMn: '13n.png', Icond: s39, Iconn: '45.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 616, OWMd: '13d.png', OWMn: '13n.png', Icond: s39, Iconn: '45.png', luxpercent: 0.5, stdIcond: sRAIN, stdIconn: sNRAIN],
-[id: 620, OWMd: '13d.png', OWMn: '13n.png', Icond: '13.png', Iconn: '46.png', luxpercent: 0.4, stdIcond: 'flurries', stdIconn: 'nt_snow'],
-[id: 621, OWMd: '13d.png', OWMn: '13n.png', Icond: '16.png', Iconn: '46.png', luxpercent: 0.3, stdIcond: 'snow', stdIconn: 'nt_snow'],
-[id: 622, OWMd: '13d.png', OWMn: '13n.png', Icond: '42.png', Iconn: '42.png', luxpercent: 0.6, stdIcond: 'snow', stdIconn: 'nt_snow'],
-[id: 701, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 711, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 721, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 731, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 741, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 751, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 761, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 762, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 771, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 781, OWMd: '50d.png', OWMn: '50n.png', Icond: s23, Iconn: s23, luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 800, OWMd: '01d.png', OWMn: '01n.png', Icond: '32.png', Iconn: '31.png', luxpercent: 1, stdIcond: 'clear', stdIconn: 'nt_clear'],
-[id: 801, OWMd: '02d.png', OWMn: '02n.png', Icond: '38.png', Iconn: '33.png', luxpercent: 0.9, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 802, OWMd: '03d.png', OWMn: '03n.png', Icond: '30.png', Iconn: '29.png', luxpercent: 0.8, stdIcond: sPCLDY, stdIconn: sNPCLDY],
-[id: 803, OWMd: '04d.png', OWMn: '04n.png', Icond: '28.png', Iconn: '27.png', luxpercent: 0.6, stdIcond: 'mostlycloudy', stdIconn: 'nt_mostlycloudy'],
-[id: 804, OWMd: '04d.png', OWMn: '04n.png', Icond: '26.png', Iconn: '26.png', luxpercent: 0.6, stdIcond: 'cloudy', stdIconn: 'nt_cloudy'],
-[id: 999, OWMd: '50d.png', OWMn: '50n.png', Icond: sNPNG, Iconn: sNPNG, luxpercent: 1.0, stdIcond: 'unknown', stdIconn: 'unknown'],
+[id: 200, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 201, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 202, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 210, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 211, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 212, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 221, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 230, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 231, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 232, OWMd: s11D, OWMn: s11N, Icd: '38.png', Icn: '47.png', luxp: 0.2, sId: sCTS, sIn: sNCTS],
+[id: 300, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 301, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 302, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 310, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 311, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 312, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 313, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 314, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 321, OWMd: '09d.png', OWMn: '09n.png', Icd: s9, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 500, OWMd: '10d.png', OWMn: '09n.png', Icd: s39, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 501, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 502, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 503, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 504, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 511, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 520, OWMd: '10d.png', OWMn: '09n.png', Icd: s39, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 521, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 522, OWMd: '10d.png', OWMn: '10n.png', Icd: s39, Icn: '11.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 531, OWMd: '10d.png', OWMn: '09n.png', Icd: s39, Icn: s9, luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 600, OWMd: '13d.png', OWMn: '13n.png', Icd: '13.png', Icn: '46.png', luxp: 0.4, sId: 'flurries', sIn: 'nt_snow'],
+[id: 601, OWMd: '13d.png', OWMn: '13n.png', Icd: '14.png', Icn: '46.png', luxp: 0.3, sId: 'snow', sIn: 'nt_snow'],
+[id: 602, OWMd: '13d.png', OWMn: '13n.png', Icd: '16.png', Icn: '46.png', luxp: 0.3, sId: 'snow', sIn: 'nt_snow'],
+[id: 611, OWMd: '13d.png', OWMn: '13n.png', Icd: s9, Icn: '46.png', luxp: 0.5, sId: sRAIN, sIn: 'nt_snow'],
+[id: 612, OWMd: '13d.png', OWMn: '13n.png', Icd: '8.png', Icn: '46.png', luxp: 0.5, sId: 'sleet', sIn: 'nt_snow'],
+[id: 613, OWMd: '13d.png', OWMn: '13n.png', Icd: s9, Icn: '46.png', luxp: 0.5, sId: sRAIN, sIn: 'nt_snow'],
+[id: 615, OWMd: '13d.png', OWMn: '13n.png', Icd: s39, Icn: '45.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 616, OWMd: '13d.png', OWMn: '13n.png', Icd: s39, Icn: '45.png', luxp: 0.5, sId: sRAIN, sIn: sNRAIN],
+[id: 620, OWMd: '13d.png', OWMn: '13n.png', Icd: '13.png', Icn: '46.png', luxp: 0.4, sId: 'flurries', sIn: 'nt_snow'],
+[id: 621, OWMd: '13d.png', OWMn: '13n.png', Icd: '16.png', Icn: '46.png', luxp: 0.3, sId: 'snow', sIn: 'nt_snow'],
+[id: 622, OWMd: '13d.png', OWMn: '13n.png', Icd: '42.png', Icn: '42.png', luxp: 0.6, sId: 'snow', sIn: 'nt_snow'],
+[id: 701, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 711, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 721, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 731, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 741, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 751, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 761, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 762, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 771, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 781, OWMd: '50d.png', OWMn: '50n.png', Icd: s23, Icn: s23, luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 800, OWMd: '01d.png', OWMn: '01n.png', Icd: '32.png', Icn: '31.png', luxp: 1, sId: 'clear', sIn: 'nt_clear'],
+[id: 801, OWMd: '02d.png', OWMn: '02n.png', Icd: '38.png', Icn: '33.png', luxp: 0.9, sId: sPCLDY, sIn: sNPCLDY],
+[id: 802, OWMd: '03d.png', OWMn: '03n.png', Icd: '30.png', Icn: '29.png', luxp: 0.8, sId: sPCLDY, sIn: sNPCLDY],
+[id: 803, OWMd: '04d.png', OWMn: '04n.png', Icd: '28.png', Icn: '27.png', luxp: 0.6, sId: 'mostlycloudy', sIn: 'nt_mostlycloudy'],
+[id: 804, OWMd: '04d.png', OWMn: '04n.png', Icd: '26.png', Icn: '26.png', luxp: 0.6, sId: 'cloudy', sIn: 'nt_cloudy'],
+[id: 999, OWMd: '50d.png', OWMn: '50n.png', Icd: sNPNG, Icn: sNPNG, luxp: 1.0, sId: 'unknown', sIn: 'unknown'],
 	]
 
 @Field final Map attributesMap = [
-	'threedayTile':				[title: 'Three Day Forecast Tile', d: 'Display Three Day Forecast Tile?', ty: 'string', default: sFLS],
-	'alert':					[title: 'Weather Alert', d: 'Display any weather alert?', ty: false, default: sFLS],
-	'betwixt':					[title: 'Slice of Day', d: 'Display the slice-of-day?', ty: 'string', default: sFLS],
-	'cloud':					[title: 'Cloud', d: 'Display cloud coverage %?', ty: 'number', default: sFLS],
-	'condition_code':			[title: 'Condition Code', d: 'Display condition_code?', ty: 'string', default: sFLS],
-	'condition_icon_only':		[title: 'Condition Icon Only', d: 'Display condition_code_only?', ty: 'string', default: sFLS],
-	'condition_icon_url':		[title: 'Condition Icon URL', d: 'Display condition_code_url?', ty: 'string', default: sFLS],
-	'condition_icon':			[title: 'Condition Icon', d: 'Display condition_icon?', ty: 'string', default: sFLS],
-	'condition_iconWithText':	[title: 'Condition Icon With Text', d: 'Display condition_iconWithText?', ty: 'string', default: sFLS],
-	'condition_text':			[title: 'Condition Text', d: 'Display condition_text?', ty: 'string', default: sFLS],
-	'dashHubitatOWM':			[title: 'Dash - Hubitat and OpenWeatherMap', d: 'Display attributes required by Hubitat and OpenWeatherMap dashboards?', ty: false, default: sFLS],
-	'dashSmartTiles':			[title: 'Dash - SmartTiles', d: 'Display attributes required by SmartTiles dashboards?', ty: false, default: sFLS],
-	'dashSharpTools':			[title: 'Dash - SharpTools.io', d: 'Display attributes required by SharpTools.io?', ty: false, default: sFLS],
-	'dewpoint':					[title: 'Dewpoint (in default unit)', d: 'Display the dewpoint?', ty: 'number', default: sFLS],
-	'fcstHighLow':				[title: 'Forecast High/Low Temperatures:', d: 'Display forecast High/Low temperatures?', ty: false, default: sFLS],
-	'forecast_code':			[title: 'Forecast Code', d: 'Display forecast_code?', ty: 'string', default: sFLS],
-	'forecast_text':			[title: 'Forecast Text', d: 'Display forecast_text?', ty: 'string', default: sFLS],
-	'illuminated':				[title: 'Illuminated', d: 'Display illuminated (with lux added for use on a Dashboard)?', ty: 'string', default: sFLS],
-	'is_day':					[title: 'Is daytime', d: 'Display is_day?', ty: 'number', default: sFLS],
-	'localSunrise':				[title: 'Local SunRise and SunSet', d: 'Display the Group of Time of Local Sunrise and Sunset, with and without Dashboard text?', ty: false, default: sFLS],
-	'myTile':					[title: 'myTile for dashboard', d: 'Display myTile?', ty: 'string', default: sFLS],
-	'rainToday':				[title: 'Today\'s Precipitation', d: 'Display today\'s precipitation?', ty: 'number', default: sFLS],
-	'precipExtended':			[title: 'Precipitation Forecast', d: 'Display precipitation forecast?', ty: false, default: sFLS],
-	'obspoll':					[title: 'Observation time', d: 'Display Observation and Poll times?', ty: false, default: sFLS],
-	'vis':						[title: 'Visibility (in default unit)', d: 'Display visibility distance?', ty: 'number', default: sFLS],
-	'weatherSummary':			[title: 'Weather Summary Message', d: 'Display the Weather Summary?', ty: 'string', default: sFLS],
-	'wind_cardinal':			[title: 'Wind Cardinal', d: 'Display the Wind Direction (text initials)?', ty: 'number', default: sFLS],
-	'wind_degree':				[title: 'Wind Degree', d: 'Display the Wind Direction (number)?', ty: 'number', default: sFLS],
-	'wind_direction':			[title: 'Wind direction', d: 'Display the Wind Direction (text words)?', ty: 'string', default: sFLS],
-	'wind_gust':				[title: 'Wind gust (in default unit)', d: 'Display the Wind Gust?', ty: 'number', default: sFLS],
-	'wind_string':				[title: 'Wind string', d: 'Display the wind string?', ty: 'string', default: sFLS],
+	'threedayTile':				[t: 'Three Day Forecast Tile', d: 'Display Three Day Forecast Tile?', ty: sSTR, defa: sFLS],
+	'alert':					[t: 'Weather Alert', d: 'Display any weather alert?', ty: false, defa: sFLS],
+	'betwixt':					[t: 'Slice of Day', d: 'Display the slice-of-day?', ty: sSTR, defa: sFLS],
+	'cloud':					[t: 'Cloud', d: 'Display cloud coverage %?', ty: sNUM, defa: sFLS],
+	'condition_code':			[t: 'Condition Code', d: 'Display condition_code?', ty: sSTR, defa: sFLS],
+	'condition_icon_only':		[t: 'Condition Icon Only', d: 'Display condition_code_only?', ty: sSTR, defa: sFLS],
+	'condition_icon_url':		[t: 'Condition Icon URL', d: 'Display condition_code_url?', ty: sSTR, defa: sFLS],
+	'condition_icon':			[t: 'Condition Icon', d: 'Display condition_icon?', ty: sSTR, defa: sFLS],
+	'condition_iconWithText':	[t: 'Condition Icon With Text', d: 'Display condition_iconWithText?', ty: sSTR, defa: sFLS],
+	'condition_text':			[t: 'Condition Text', d: 'Display condition_text?', ty: sSTR, defa: sFLS],
+	'dashHubitatOWM':			[t: 'Dash - Hubitat and OpenWeatherMap', d: 'Display attributes required by Hubitat and OpenWeatherMap dashboards?', ty: false, defa: sFLS],
+	'dashSmartTiles':			[t: 'Dash - SmartTiles', d: 'Display attributes required by SmartTiles dashboards?', ty: false, defa: sFLS],
+	'dashSharpTools':			[t: 'Dash - SharpTools.io', d: 'Display attributes required by SharpTools.io?', ty: false, defa: sFLS],
+	'dewpoint':					[t: 'Dewpoint (in default unit)', d: 'Display the dewpoint?', ty: sNUM, defa: sFLS],
+	'fcstHighLow':				[t: 'Forecast High/Low Temperatures:', d: 'Display forecast High/Low temperatures?', ty: false, defa: sFLS],
+	'forecast_code':			[t: 'Forecast Code', d: 'Display forecast_code?', ty: sSTR, defa: sFLS],
+	'forecast_text':			[t: 'Forecast Text', d: 'Display forecast_text?', ty: sSTR, defa: sFLS],
+	'illuminated':				[t: 'Illuminated', d: 'Display illuminated (with lux added for use on a Dashboard)?', ty: sSTR, defa: sFLS],
+	'is_day':					[t: 'Is daytime', d: 'Display is_day?', ty: sNUM, defa: sFLS],
+	'localSunrise':				[t: 'Local SunRise and SunSet', d: 'Display the Group of Time of Local Sunrise and Sunset, with and without Dashboard text?', ty: false, defa: sFLS],
+	'myTile':					[t: 'myTile for dashboard', d: 'Display myTile?', ty: sSTR, defa: sFLS],
+	'rainToday':				[t: 'Today\'s Precipitation volume', d: 'Display today\'s precipitation volume?', ty: sNUM, defa: sFLS],
+	'percentPrecip':			[t: 'Today\'s Precipitation Probability', d: 'Display today\'s precipitation probability?', ty: sNUM, defa: sFLS],
+	'precipExtended':			[t: 'Precipitation Forecast', d: 'Display precipitation forecast?', ty: false, defa: sFLS],
+	'obspoll':					[t: 'Observation time', d: 'Display Observation and Poll times?', ty: false, defa: sFLS],
+	'vis':						[t: 'Visibility (in default unit)', d: 'Display visibility distance?', ty: sNUM, defa: sFLS],
+	'weatherSummary':			[t: 'Weather Summary Message', d: 'Display the Weather Summary?', ty: sSTR, defa: sFLS],
+	'wind_cardinal':			[t: 'Wind Cardinal', d: 'Display the Wind Direction (text initials)?', ty: sNUM, defa: sFLS],
+	'wind_degree':				[t: 'Wind Degree', d: 'Display the Wind Direction (number)?', ty: sNUM, defa: sFLS],
+	'wind_direction':			[t: 'Wind direction', d: 'Display the Wind Direction (text words)?', ty: sSTR, defa: sFLS],
+	'wind_gust':				[t: 'Wind gust (in default unit)', d: 'Display the Wind Gust?', ty: sNUM, defa: sFLS],
+	'wind_string':				[t: 'Wind string', d: 'Display the wind string?', ty: sSTR, defa: sFLS],
 ]
 
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
