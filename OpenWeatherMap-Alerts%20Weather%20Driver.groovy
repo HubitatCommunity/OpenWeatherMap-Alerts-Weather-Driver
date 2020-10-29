@@ -177,8 +177,8 @@ metadata {
 		attribute 'last_observation_Forecast', sSTR  // datestamp of the forecast observation
 
 //precipExtended
-		attribute 'rainDayAfterTomorrow', sNUM
 		attribute 'rainTomorrow', sNUM
+		attribute 'rainDayAfterTomorrow', sNUM
 
 		command 'pollData'
 	}
@@ -499,60 +499,65 @@ void pollOWMHandler(resp, data) {
 		myUpdData('forecast_text', owmDaily==null || owmDaily[0]?.description==null ? 'Unknown' : owmDaily[0].description.capitalize())
 
 		owmDaily = owm?.daily != null ? (List)owm.daily : null
-		BigDecimal t_p0 = (!owmDaily[0].rain ? 0.00 : owmDaily[0].rain) + (!owmDaily[0].snow ? 0.00 : owmDaily[0].snow)
+		BigDecimal t_p0 = (owmDaily==null || !owmDaily[0]?.rain ? 0.00 : owmDaily[0].rain) + (owmDaily==null || !owmDaily[0]?.snow ? 0.00 : owmDaily[0].snow)
 
 		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
-		myUpdData('percentPrecip', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toInteger() * 100).toString())
-		myUpdData('PoP', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toInteger() * 100).toString())
-		
+		myUpdData('PoP', !owmDaily[0].pop ? sZERO : (owmDaily[0].pop.toInteger() * 100).toString())
+		myUpdData('percentPrecip', myGetData('PoP'))
+
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTile2Publish)) {
-			BigDecimal t_p1 = (!owmDaily[1].rain ? 0.00 : owmDaily[1].rain) + (!owmDaily[1].snow ? 0.00 : owmDaily[1].snow)
-			BigDecimal t_p2 = (!owmDaily[2].rain ? 0.00 : owmDaily[2].rain) + (!owmDaily[2].snow ? 0.00 : owmDaily[2].snow)
+			BigDecimal t_p1 = (!owmDaily[1]?.rain ? 0.00 : owmDaily[1].rain) + (!owmDaily[1]?.snow ? 0.00 : owmDaily[1].snow)
+			BigDecimal t_p2 = (!owmDaily[2]?.rain ? 0.00 : owmDaily[2].rain) + (!owmDaily[2]?.snow ? 0.00 : owmDaily[2].snow)
 			myUpdData('Precip0', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
 			myUpdData('Precip1', (Math.round((myGetData(sRMETR) == 'in' ? t_p1 * 0.03937008 : t_p1) * mult_r) / mult_r).toString())
 			myUpdData('Precip2', (Math.round((myGetData(sRMETR) == 'in' ? t_p2 * 0.03937008 : t_p2) * mult_r) / mult_r).toString())
-			myUpdData('PoP1', (!owm.daily[1].pop ? 0 : owm.daily[1].pop.toInteger() * 100).toString())
-			myUpdData('PoP2', (!owm.daily[2].pop ? 0 : owm.daily[2].pop.toInteger() * 100).toString())
+			myUpdData('PoP1', !owmDaily[1].pop ? sZERO : (owmDaily[1].pop.toInteger() * 100).toString())
+			myUpdData('PoP2', !owmDaily[2].pop ? sZERO : (owmDaily[2].pop.toInteger() * 100).toString())
 		}
 
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
-		if(owmDaily && owmDaily[1] && owmDaily[2] && (threedayTilePublish || myTile2Publish || fcstHighLowPublish)) {
-			myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date((Long)owmDaily[1].dt * 1000L).format('EEEE'))
-			myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date((Long)owmDaily[2].dt * 1000L).format('EEEE'))
-			myUpdData('is_day1', sTRU)
-			myUpdData('is_day2', sTRU)
-			myUpdData('forecast_id1', owmDaily[1]?.weather[0]?.id==null ? '999' : owmDaily[1].weather[0].id.toString())
-			myUpdData('forecast_code1', getCondCode(myGetData('forecast_id1').toInteger(), sTRU))
-			myUpdData('forecast_text1', owmDaily[1]?.weather[0]?.description==null ? 'Unknown' : owmDaily[1].weather[0].description.capitalize())
+		if(owmDaily && owmDaily[1] && owmDaily[2]) {
+			String tmpImg1= myGetData(sICON) + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1
+			String tmpImg2= myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1
 
-			myUpdData('forecast_id2', owmDaily[2]?.weather[0]?.id==null ? '999' : owmDaily[2].weather[0].id.toString())
-			myUpdData('forecast_code2', getCondCode(myGetData('forecast_id2').toInteger(), sTRU))
-			myUpdData('forecast_text2', owmDaily[2]?.weather[0]?.description==null ? 'Unknown' : owmDaily[2].weather[0].description.capitalize())
+			if(threedayTilePublish || myTile2Publish || fcstHighLowPublish) {
+				myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date((Long)owmDaily[1].dt * 1000L).format('EEEE'))
+				myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date((Long)owmDaily[2].dt * 1000L).format('EEEE'))
+				myUpdData('is_day1', sTRU)
+				myUpdData('is_day2', sTRU)
+				myUpdData('forecast_id1', owmDaily[1]?.weather[0]?.id==null ? '999' : owmDaily[1].weather[0].id.toString())
+				myUpdData('forecast_code1', getCondCode(myGetData('forecast_id1').toInteger(), sTRU))
+				myUpdData('forecast_text1', owmDaily[1]?.weather[0]?.description==null ? 'Unknown' : owmDaily[1].weather[0].description.capitalize())
 
-			myUpdData('forecastHigh1', adjTemp(owmDaily[1]?.temp?.max, isF, mult_twd))
-			myUpdData('forecastHigh2', adjTemp(owmDaily[2]?.temp?.max, isF, mult_twd))
+				myUpdData('forecast_id2', owmDaily[2]?.weather[0]?.id==null ? '999' : owmDaily[2].weather[0].id.toString())
+				myUpdData('forecast_code2', getCondCode(myGetData('forecast_id2').toInteger(), sTRU))
+				myUpdData('forecast_text2', owmDaily[2]?.weather[0]?.description==null ? 'Unknown' : owmDaily[2].weather[0].description.capitalize())
 
-			myUpdData('forecastLow1', adjTemp(owmDaily[1]?.temp?.min, isF, mult_twd))
-			myUpdData('forecastLow2', adjTemp(owmDaily[2]?.temp?.min, isF, mult_twd))
+				myUpdData('forecastHigh1', adjTemp(owmDaily[1]?.temp?.max, isF, mult_twd))
+				myUpdData('forecastHigh2', adjTemp(owmDaily[2]?.temp?.max, isF, mult_twd))
+
+				myUpdData('forecastLow1', adjTemp(owmDaily[1]?.temp?.min, isF, mult_twd))
+				myUpdData('forecastLow2', adjTemp(owmDaily[2]?.temp?.min, isF, mult_twd))
 		
-			myUpdData('forecastMorn', adjTemp(owmDaily[0]?.temp?.morn, isF, mult_twd))
-			myUpdData('forecastDay', adjTemp(owmDaily[0]?.temp?.day, isF, mult_twd))
-			myUpdData('forecastEve', adjTemp(owmDaily[0]?.temp?.eve, isF, mult_twd))
-			myUpdData('forecastNight', adjTemp(owmDaily[0]?.temp?.night, isF, mult_twd))
+				myUpdData('forecastMorn', adjTemp(owmDaily[0]?.temp?.morn, isF, mult_twd))
+				myUpdData('forecastDay', adjTemp(owmDaily[0]?.temp?.day, isF, mult_twd))
+				myUpdData('forecastEve', adjTemp(owmDaily[0]?.temp?.eve, isF, mult_twd))
+				myUpdData('forecastNight', adjTemp(owmDaily[0]?.temp?.night, isF, mult_twd))
 
-			myUpdData('forecastMorn1', adjTemp(owmDaily[1]?.temp?.morn, isF, mult_twd))
-			myUpdData('forecastDay1', adjTemp(owmDaily[1]?.temp?.day, isF, mult_twd))
-			myUpdData('forecastEve1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
-			myUpdData('forecastNight1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
+				myUpdData('forecastMorn1', adjTemp(owmDaily[1]?.temp?.morn, isF, mult_twd))
+				myUpdData('forecastDay1', adjTemp(owmDaily[1]?.temp?.day, isF, mult_twd))
+				myUpdData('forecastEve1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
+				myUpdData('forecastNight1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
 
-			String imgT= '<img class="centerImage" src=' + myGetData(sICON)
-			myUpdData('imgName0', imgT + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
-			myUpdData('imgName1', imgT + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1 + sRB)
-			myUpdData('imgName2', imgT + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1 + sRB)
-		}
-		if(condition_icon_urlPublish) {
-			sendEvent(name: 'condition_icon_url1', value: myGetData(sICON) + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1)
-			sendEvent(name: 'condition_icon_url2', value: myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1)
+				String imgT= '<img class="centerImage" src='
+				myUpdData('imgName0', imgT + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
+				myUpdData('imgName1', imgT + tmpImg1 + sRB)
+				myUpdData('imgName2', imgT + tmpImg2 + sRB)
+			}
+			if(condition_icon_urlPublish) {
+				sendEvent(name: 'condition_icon_url1', value: tmpImg1)
+				sendEvent(name: 'condition_icon_url2', value: tmpImg2)
+			}
 		}
 		myUpdData('forecastHigh', adjTemp(owmDaily[0]?.temp?.max, isF, mult_twd))
 		myUpdData('forecastLow', adjTemp(owmDaily[0]?.temp?.min, isF, mult_twd))
@@ -569,10 +574,11 @@ void pollOWMHandler(resp, data) {
 		if(alertPublish) {
 			if(!owm.alerts) {
 				clearAlerts()
-			}else{			
-				String curAl = owm?.alerts[0]?.event==null ? sNCWA : owm?.alerts[0]?.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
-				String curAlSender = owm?.alerts[0]?.sender_name==null ? sNULL : owm?.alerts[0]?.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
-				String curAlDescr = owm?.alerts[0]?.description==null ? sNULL : owm?.alerts[0]?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
+			}else{
+				Map owmAlerts0= owm?.alerts ? owm?.alerts[0] : null
+				String curAl = owmAlerts0?.event==null ? sNCWA : owmAlerts0.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
+				String curAlSender = owmAlerts0?.sender_name==null ? sNULL : owmAlerts0.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
+				String curAlDescr = owmAlerts0?.description==null ? sNULL : owmAlerts0.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
 				LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
 				if(curAl==sNCWA) {
 					clearAlerts()
@@ -597,7 +603,7 @@ void pollOWMHandler(resp, data) {
 				}
 			}
 			//  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null ? '' : ' issued by ' + myGetData('alertSender')) + ' updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
+			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null || myGetData('alertSender')==sSPC ? '' : ' issued by ' + myGetData('alertSender')) + ' updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
 			alertTile+= myGetData('alertTileLink') + sBR + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
 			myUpdData('alertTile', alertTile)
 			sendEvent(name: 'alert', value: myGetData('alert'))
@@ -811,8 +817,8 @@ void updateLux(Boolean pollAgain=true) {
 void PostPoll() {
 	if(ifreInstalled()) { updated(); return }
 	Integer mult_twd = myGetData('mult_twd')==sNULL ? 1 : myGetData('mult_twd').toInteger()
-	Integer mult_p = myGetData('mult_p')==sNULL ? 1 : myGetData('mult_p').toInteger()
-	Integer mult_r = myGetData('mult_r')==sNULL ? 1 : myGetData('mult_r').toInteger()
+//	Integer mult_p = myGetData('mult_p')==sNULL ? 1 : myGetData('mult_p').toInteger()
+//	Integer mult_r = myGetData('mult_r')==sNULL ? 1 : myGetData('mult_r').toInteger()
 
 	Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
 /*  SunriseSunset Data Elements */
@@ -887,8 +893,8 @@ void PostPoll() {
 	}
 
 	if(precipExtendedPublish){ // don't bother setting these values if it's not enabled
-		sendEvent(name: 'rainDayAfterTomorrow', value: myGetData('rainDayAfterTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
 		sendEvent(name: 'rainTomorrow', value: myGetData('rainTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
+		sendEvent(name: 'rainDayAfterTomorrow', value: myGetData('rainDayAfterTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
 	}
 	sendEventPublish(name: 'vis', value: Math.round(myGetData('vis').toBigDecimal() * mult_twd) / mult_twd, unit: (myGetData(sDMETR)=='MPH' ? 'miles' : 'kilometers'))
 	sendEventPublish(name: 'wind_degree', value: myGetData('wind_degree').toInteger(), unit: 'DEGREE')
@@ -947,9 +953,9 @@ void PostPoll() {
 		my3day += '</tr>'
 		my3day += '<tr>'
 		my3day += sTD+'PoP/Precip:'+sTDE
-		my3day += sTD + myGetData('PoP') + '%/' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sSPC + sTDE
-		my3day += sTD + myGetData('PoP1') + '%/' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sSPC + sTDE
-		my3day += sTD + myGetData('PoP2') + '%/' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sSPC + sTDE
+		my3day += sTD + myGetData('PoP') + '%/' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') +sSPC + sTDE
+		my3day += sTD + myGetData('PoP1') + '%/' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip1').toBigDecimal()) + myGetData(sRMETR) : 'None') +sSPC + sTDE
+		my3day += sTD + myGetData('PoP2') + '%/' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip2').toBigDecimal()) + myGetData(sRMETR) : 'None') +sSPC + sTDE
 		my3day += '</tr>'
 		my3day += '</table>'
 		my3day += '<table align="center">'
@@ -1019,7 +1025,7 @@ void buildMyText() {
 		mytexte+= '<span style="font-size:.9em">'+sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
 		mytexte+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
 		mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + ' '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
+		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + ' ' +sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
 		mytexte+= myGetData('humidity') + '% ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + myGetData('percentPrecip') + '%' + sIMGS + myGetData(sICON) + 'wr.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
 		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
 		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
@@ -1476,7 +1482,7 @@ def estimateLux(Integer condition_id, Integer cloud) {
 		if(!cloud){
 			Map LUitem = LUTable.find{ (Integer)it.id == condition_id }
 			if (LUitem)	{
-				cCF = LUitem.luxpercent
+				cCF = LUitem.luxp
 				cCT = ' using estimated cloud cover based on condition.'
 			}else{
 				cCF = 1.0
