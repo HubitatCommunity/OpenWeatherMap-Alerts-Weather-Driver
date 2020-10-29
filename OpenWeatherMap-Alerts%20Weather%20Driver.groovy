@@ -47,6 +47,7 @@
 	Last Update 10/28/2020
 	{ Left room below to document version changes...}
 
+	V0.3.9	10/28/2020	Bux fixes for new Probability of Precipitation (PoP) from OWM.
 	V0.3.8	10/28/2020	Added Probability of Precipitation (PoP) from OWM.  Bug fixes and code and string reductions by @nh.schottfam).
 	V0.3.7	10/27/2020	Bug fixes.
 	V0.3.6	10/27/2020	Removed '+' from attribute names.  Three Day Tile now has optional 'Low/High' or 'High/Low' setting.
@@ -99,7 +100,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.3.8'  }
+static String version()	{  return '0.3.9'  }
 import groovy.transform.Field
 
 metadata {
@@ -316,8 +317,8 @@ void pollOWM() {
 	}
 	Map ParamsOWM
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
-//	String altLat = "42.8666667"
-//	String altLon = "-106.3125"
+//	String altLat = "38.627003" //"30.6953657"
+//	String altLon = "-90.199402" //-88.0398912"
 
 	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey ]
 	LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
@@ -368,9 +369,9 @@ void pollOWMHandler(resp, data) {
 // >>>>>>>>>> End Setup Global Variables <<<<<<<<<<
 
 // <<<<<<<<<< Begin Process Standard Weather-Station Variables (Regardless of Forecast Selection)  >>>>>>>>>>
-		Integer mult_twd=myGetData('mult_twd').toInteger()
-		Integer mult_p=myGetData('mult_p').toInteger()
-		Integer mult_r=myGetData('mult_r').toInteger()
+		Integer mult_twd = myGetData('mult_twd')==sNULL ? 1 : myGetData('mult_twd').toInteger()
+		Integer mult_p = myGetData('mult_p')==sNULL ? 1 : myGetData('mult_p').toInteger()
+		Integer mult_r = myGetData('mult_r')==sNULL ? 1 : myGetData('mult_r').toInteger()
 		Boolean isF = myGetData(sTMETR) == sDF
 
 		BigDecimal t_dew = owm?.current?.dew_point
@@ -498,20 +499,20 @@ void pollOWMHandler(resp, data) {
 		myUpdData('forecast_text', owmDaily==null || owmDaily[0]?.description==null ? 'Unknown' : owmDaily[0].description.capitalize())
 
 		owmDaily = owm?.daily != null ? (List)owm.daily : null
-		BigDecimal t_p0 = (owmDaily==null || owmDaily[0]?.rain==null ? 0.00 : owmDaily[0].rain) + (owmDaily==null || owmDaily[0]?.snow==null ? 0.00 : owmDaily[0].snow)
+		BigDecimal t_p0 = (!owmDaily[0].rain ? 0.00 : owmDaily[0].rain) + (!owmDaily[0].snow ? 0.00 : owmDaily[0].snow)
 
 		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
-		myUpdData('percentPrecip', !owm.daily[0].pop ? sZERO : owm.daily[0].pop.toString())
-		myUpdData('PoP', !owm.daily[0].pop ? sZERO : owm.daily[0].pop.toString())
+		myUpdData('percentPrecip', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toInteger() * 100).toString())
+		myUpdData('PoP', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toInteger() * 100).toString())
 		
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTile2Publish)) {
-			BigDecimal t_p1 = (owmDaily[1]?.rain==null ? 0.00 : owmDaily[1].rain) + (owmDaily[1]?.snow==null ? 0.00 : owmDaily[1].snow)
-			BigDecimal t_p2 = (owmDaily[2]?.rain==null ? 0.00 : owmDaily[2].rain) + (owmDaily[2]?.snow==null ? 0.00 : owmDaily[2].snow)
+			BigDecimal t_p1 = (!owmDaily[1].rain ? 0.00 : owmDaily[1].rain) + (!owmDaily[1].snow ? 0.00 : owmDaily[1].snow)
+			BigDecimal t_p2 = (!owmDaily[2].rain ? 0.00 : owmDaily[2].rain) + (!owmDaily[2].snow ? 0.00 : owmDaily[2].snow)
 			myUpdData('Precip0', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
 			myUpdData('Precip1', (Math.round((myGetData(sRMETR) == 'in' ? t_p1 * 0.03937008 : t_p1) * mult_r) / mult_r).toString())
 			myUpdData('Precip2', (Math.round((myGetData(sRMETR) == 'in' ? t_p2 * 0.03937008 : t_p2) * mult_r) / mult_r).toString())
-			myUpdData('PoP1', (!owm.daily[1].pop ? sZERO : owm.daily[1].pop).toString())
-			myUpdData('PoP2', (!owm.daily[2].pop ? sZERO : owm.daily[2].pop).toString())
+			myUpdData('PoP1', (!owm.daily[1].pop ? 0 : owm.daily[1].pop.toInteger() * 100).toString())
+			myUpdData('PoP2', (!owm.daily[2].pop ? 0 : owm.daily[2].pop.toInteger() * 100).toString())
 		}
 
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
@@ -946,9 +947,9 @@ void PostPoll() {
 		my3day += '</tr>'
 		my3day += '<tr>'
 		my3day += sTD+'PoP/Precip:'+sTDE
-		my3day += sTD + myGetData('PoP') + '%/' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
-		my3day += sTD + myGetData('PoP1') + '%/' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
-		my3day += sTD + myGetData('PoP2') + '%/' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sTDE
+		my3day += sTD + myGetData('PoP') + '%/' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sSPC + sTDE
+		my3day += sTD + myGetData('PoP1') + '%/' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sSPC + sTDE
+		my3day += sTD + myGetData('PoP2') + '%/' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sSPC + sTDE
 		my3day += '</tr>'
 		my3day += '</table>'
 		my3day += '<table align="center">'
@@ -1018,8 +1019,8 @@ void buildMyText() {
 		mytexte+= '<span style="font-size:.9em">'+sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
 		mytexte+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(myGetData('ddisp_twd'), myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
 		mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(myGetData('ddisp_twd'), wgust) + sSPC + myGetData(sDMETR)) + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '    '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
-		mytexte+= myGetData('humidity') + '%    ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + myGetData('percentPrecip') + '%    ' + sIMGS + myGetData(sICON) + 'wr.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
+		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + ' '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
+		mytexte+= myGetData('humidity') + '% ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + myGetData('percentPrecip') + '%' + sIMGS + myGetData(sICON) + 'wr.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(myGetData('ddisp_r'), myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
 		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
 		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
 
