@@ -162,6 +162,8 @@ metadata {
 		attribute 'forecastDay1', sNUM
 		attribute 'forecastEve1', sNUM
 		attribute 'forecastNight1', sNUM
+		attribute 'forecast_text1', sSTR
+		attribute 'forecast_text2', sSTR
 		attribute 'condition_icon_url1', sSTR
 		attribute 'condition_icon_url2', sSTR
 
@@ -840,12 +842,12 @@ void PostPoll() {
 	sendEvent(name: 'humidity', value: myGetData('humidity').toBigDecimal(), unit: '%')
 	sendEvent(name: 'illuminance', value: myGetData('illuminance').toInteger(), unit: 'lx')
 	sendEvent(name: 'pressure', value: myGetData('pressure').toBigDecimal(), unit: myGetData(sPMETR))
-	sendEvent(name: 'pressured', value: String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
 	sendEvent(name: sTEMP, value: myGetData(sTEMP).toBigDecimal(), unit: myGetData(sTMETR))
 	sendEvent(name: 'ultravioletIndex', value: myGetData('ultravioletIndex').toBigDecimal(), unit: 'uvi')
 	sendEvent(name: 'feelsLike', value: myGetData('feelsLike').toBigDecimal(), unit: myGetData(sTMETR))
 
 /*  'Required for Dashboards' Data Elements */
+	if(dashSharpToolsPublish || dashSmartTilesPublish) sendEvent(name: 'pressured', value: String.format(myGetData('ddisp_p'), myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
 	if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) { sendEvent(name: 'city', value: myGetData('city')) }
 	if(dashSharpToolsPublish) { sendEvent(name: 'forecastIcon', value: getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day'))) }
 	if(dashSharpToolsPublish || dashSmartTilesPublish || rainTodayPublish) { sendEvent(name: 'rainToday', value: myGetData('rainToday').toBigDecimal(), unit: myGetData(sRMETR)) }
