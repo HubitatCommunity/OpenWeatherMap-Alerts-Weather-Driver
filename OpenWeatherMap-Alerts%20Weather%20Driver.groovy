@@ -47,6 +47,7 @@
 	Last Update 10/29/2020
 	{ Left room below to document version changes...}
 
+	V0.4.2	10/29/2020	Yet another Precip bux fix.
 	V0.4.1	10/29/2020	Move today's precip back to 'Daily'.  More bux fixes.
 	V0.4.0	10/28/2020	More Bux fixes for new Probability of Precipitation (PoP) from OWM.
 	V0.3.9	10/28/2020	Bux fixes for new Probability of Precipitation (PoP) from OWM.
@@ -102,7 +103,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.4.1'  }
+static String version()	{  return '0.4.2'  }
 import groovy.transform.Field
 
 metadata {
@@ -498,18 +499,17 @@ void pollOWMHandler(resp, data) {
 		myUpdData('condition_code', getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day')))
 		myUpdData('condition_text', owmCweat==null || owmCweat[0]?.description==null ? 'Unknown' : owmCweat[0].description.capitalize())
 		myUpdData('OWN_icon', owmCweat == null || owmCweat[0]?.icon==null ? (myGetData('is_day')==sTRU ? '50d' : '50n') : owmCweat[0].icon)
-		myUpdData('PoP', (!owmCweat[0].pop ? 0 : (owmCweat[0].pop.toBigDecimal() * 100).toInteger()).toString())
 		
 		List owmDaily = owm?.daily != null && ((List)owm.daily)[0]?.weather != null ? ((List)owm?.daily)[0].weather : null
 		myUpdData('forecast_id', owmDaily==null || owmDaily[0]?.id==null ? '999' : owmDaily[0].id.toString())
 		myUpdData('forecast_code', getCondCode(myGetData('forecast_id').toInteger(), sTRU))
 		myUpdData('forecast_text', owmDaily==null || owmDaily[0]?.description==null ? 'Unknown' : owmDaily[0].description.capitalize())
+		
+		owmDaily = owm?.daily != null ? (List)owm.daily : null
 		BigDecimal t_p0 = (!owmDaily[0].rain ? 0 : owmDaily[0].rain.toBigDecimal()) + (!owmDaily[0].snow ? 0 : owmDaily[0].snow.toBigDecimal())
 		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
-
-		owmDaily = owm?.daily != null ? (List)owm.daily : null
-		myUpdData('percentPrecip', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toBigDecimal() * 100.toInteger()).toString())
-		myUpdData('PoP', (!owm.daily[0].pop ? 0 : (owm.daily[0].pop.toBigDecimal() * 100).toInteger()).toString())
+		myUpdData('PoP', (!owmDaily[0].pop ? 0 : (owmDaily[0].pop.toBigDecimal() * 100).toInteger()).toString())
+		myUpdData('percentPrecip', (!owmDaily[0].pop ? 0 : (owmDaily[0].pop.toBigDecimal() * 100).toInteger()).toString())
 		
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTile2Publish)) {
 			BigDecimal t_p1 = (!owmDaily[1].rain ? 0 : owmDaily[1].rain) + (!owmDaily[1].snow ? 0 : owmDaily[1].snow)
@@ -517,8 +517,8 @@ void pollOWMHandler(resp, data) {
 			myUpdData('Precip0', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
 			myUpdData('Precip1', (Math.round((myGetData(sRMETR) == 'in' ? t_p1 * 0.03937008 : t_p1) * mult_r) / mult_r).toString())
 			myUpdData('Precip2', (Math.round((myGetData(sRMETR) == 'in' ? t_p2 * 0.03937008 : t_p2) * mult_r) / mult_r).toString())
-			myUpdData('PoP1', (!owm.daily[1].pop ? 0 : (owm.daily[1].pop.toBigDecimal() * 100).toInteger()).toString())
-			myUpdData('PoP2', (!owm.daily[2].pop ? 0 : (owm.daily[2].pop.toBigDecimal() * 100).toInteger()).toString())
+			myUpdData('PoP1', (!owmDaily[1].pop ? 0 : (owmDaily[1].pop.toBigDecimal() * 100).toInteger()).toString())
+			myUpdData('PoP2', (!owmDaily[2].pop ? 0 : (owmDaily[2].pop.toBigDecimal() * 100).toInteger()).toString())
 		}
 
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
