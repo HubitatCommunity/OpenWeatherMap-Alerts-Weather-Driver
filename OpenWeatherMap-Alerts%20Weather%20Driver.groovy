@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/28/2020
+	Last Update 10/29/2020
 	{ Left room below to document version changes...}
 
+	V0.4.1	10/29/2020	Move today's precip back to 'Daily'.  More bux fixes.
 	V0.4.0	10/28/2020	More Bux fixes for new Probability of Precipitation (PoP) from OWM.
 	V0.3.9	10/28/2020	Bux fixes for new Probability of Precipitation (PoP) from OWM.
 	V0.3.8	10/28/2020	Added Probability of Precipitation (PoP) from OWM.  Bug fixes and code and string reductions by @nh.schottfam).
@@ -101,7 +102,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.4.0'  }
+static String version()	{  return '0.4.1'  }
 import groovy.transform.Field
 
 metadata {
@@ -374,6 +375,8 @@ void pollOWMHandler(resp, data) {
 		Integer mult_p = myGetData('mult_p')==sNULL ? 1 : myGetData('mult_p').toInteger()
 		Integer mult_r = myGetData('mult_r')==sNULL ? 1 : myGetData('mult_r').toInteger()
 		String ddisp_twd = myGetData('ddisp_twd')==sNULL ? '%3.0f' : myGetData('ddisp_twd')
+		String ddisp_p = myGetData('ddisp_p')==sNULL ? '%4.0f' : myGetData('ddisp_p')
+		String ddisp_r = myGetData('ddisp_r')==sNULL ? '%2.0f' : myGetData('ddisp_r')
 		
 		Boolean isF = myGetData(sTMETR) == sDF
 
@@ -495,14 +498,14 @@ void pollOWMHandler(resp, data) {
 		myUpdData('condition_code', getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day')))
 		myUpdData('condition_text', owmCweat==null || owmCweat[0]?.description==null ? 'Unknown' : owmCweat[0].description.capitalize())
 		myUpdData('OWN_icon', owmCweat == null || owmCweat[0]?.icon==null ? (myGetData('is_day')==sTRU ? '50d' : '50n') : owmCweat[0].icon)
-		myUpdData('PoP', (!owmCweat[0].pop ? 0 : owmCweat[0].pop.toInteger() * 100).toString())
-		BigDecimal t_p0 = (!owmCweat[0].rain ? 0 : owmCweat[0].rain) + (!owmCweat[0].snow ? 0 : owmCweat[0].snow)
-		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
+		myUpdData('PoP', (!owmCweat[0].pop ? 0 : (owmCweat[0].pop.toBigDecimal() * 100).toInteger()).toString())
 		
 		List owmDaily = owm?.daily != null && ((List)owm.daily)[0]?.weather != null ? ((List)owm?.daily)[0].weather : null
 		myUpdData('forecast_id', owmDaily==null || owmDaily[0]?.id==null ? '999' : owmDaily[0].id.toString())
 		myUpdData('forecast_code', getCondCode(myGetData('forecast_id').toInteger(), sTRU))
 		myUpdData('forecast_text', owmDaily==null || owmDaily[0]?.description==null ? 'Unknown' : owmDaily[0].description.capitalize())
+		BigDecimal t_p0 = (!owmDaily[0].rain ? 0 : owmDaily[0].rain.toBigDecimal()) + (!owmDaily[0].snow ? 0 : owmDaily[0].snow.toBigDecimal())
+		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
 
 		owmDaily = owm?.daily != null ? (List)owm.daily : null
 		myUpdData('percentPrecip', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toBigDecimal() * 100.toInteger()).toString())
