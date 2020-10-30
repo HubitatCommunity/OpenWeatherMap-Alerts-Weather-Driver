@@ -511,7 +511,7 @@ void pollOWMHandler(resp, data) {
 		owmDaily = owm?.daily != null ? (List)owm.daily : null
 		BigDecimal t_p0 = (owmDaily==null || !owmDaily[0]?.rain ? 0.00 : owmDaily[0].rain.toBigDecimal()) + (owmDaily==null || !owmDaily[0]?.snow ? 0.00 : owmDaily[0].snow.toBigDecimal())
 		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
-		myUpdData('PoP', (!owm.daily[0].pop ? 0 : owm.daily[0].pop.toBigDecimal() * 100.toInteger()).toString())
+		myUpdData('PoP', (!owm.daily[0].pop ? 0 : Math.round(owm.daily[0].pop.toBigDecimal() * 100.toInteger())).toString())
 		myUpdData('percentPrecip', myGetData('PoP'))
 
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTile2Publish)) {
