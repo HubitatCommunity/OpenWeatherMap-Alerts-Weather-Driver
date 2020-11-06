@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 10/31/2020
+	Last Update 11/06/2020
 	{ Left room below to document version changes...}
 
+	V0.4.6	11/06/2020	Refactored the dashboard tiles.
 	V0.4.5	10/31/2020	Tweaked threedayfcstTile for small screens.
 	V0.4.4	10/30/2020	More code cleanups/reductions/optimizations by @nh.schottfam.
 	V0.4.3	10/29/2020	Bug fixes and the usual code cleanup/reduction/optimizations by @nh.schottfam.
@@ -106,7 +107,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.4.5'  }
+static String version()	{  return '0.4.6'  }
 import groovy.transform.Field
 
 metadata {
@@ -268,9 +269,10 @@ metadata {
 @Field static final String s9='9.png'
 @Field static final String s39='39.png'
 @Field static final String sDF='°F'
-@Field static final String sIMGS='<img src='
+@Field static final String sIMGS5='<img class="cI" src='
+@Field static final String sIMGS8='<img class="cIb" src='
 @Field static final String sTD='<td>'
-@Field static final String sTDE='</td>'
+@Field static final String sTR='<tr><td>'
 @Field static final String sSTR='string'
 @Field static final String sNUM='number'
 @Field static final String sNCWA='No current weather alerts for this area'
@@ -557,10 +559,9 @@ void pollOWMHandler(resp, data) {
 				myUpdData('forecastEve1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
 				myUpdData('forecastNight1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
 
-				String imgT= '<img class="centerImage" src='
-				myUpdData('imgName0', imgT + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
-				myUpdData('imgName1', imgT + tmpImg1 + sRB)
-				myUpdData('imgName2', imgT + tmpImg2 + sRB)
+				myUpdData('imgName0', sIMGS5 + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
+				myUpdData('imgName1', sIMGS5 + tmpImg1 + sRB)
+				myUpdData('imgName2', sIMGS5 + tmpImg2 + sRB)
 			}
 			if(condition_icon_urlPublish) {
 				sendEvent(name: 'condition_icon_url1', value: tmpImg1)
@@ -601,18 +602,15 @@ void pollOWMHandler(resp, data) {
 					myUpdData('alert', curAl + (alertCnt>0 ? ' +' + alertCnt.toString() : sBLK))
 					myUpdData('alertDescr', curAlDescr)
 					myUpdData('alertSender', curAlSender)
-					//	https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
-					String al3 = '<a style="font-style:italic;color:red" href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">'
+					String al3 = '<a style="font-style:italic;color:red">'					
 					myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
 					myUpdData('alertLink',  al3+myGetData('alert')+sACB)
-					myUpdData('alertLink2',  al3+myGetData('alert')+sACB)
-					myUpdData('alertLink3', '<a style="font-style:italic;color:red" target=\'_blank\'>' + myGetData('alert')+sACB)
 					myUpdData('possAlert', sTRU)
 				}
 			}
 			//  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null || myGetData('alertSender')==sSPC ? '' : ' issued by ' + myGetData('alertSender')) + ' updated at ' + myGetData(sSUMLST) + ' on ' + myGetData('Summary_last_poll_date') + '.<br>'
-			alertTile+= myGetData('alertTileLink') + sBR + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
+			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null || myGetData('alertSender')==sSPC ? '' : ' issued by ' + myGetData('alertSender')) + '.<br>'
+			alertTile+= myGetData('alertTileLink') + sBR + '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
 			myUpdData('alertTile', alertTile)
 			sendEvent(name: 'alert', value: myGetData('alert'))
 			sendEvent(name: 'alertDescr', value: myGetData('alertDescr'))
@@ -624,8 +622,8 @@ void pollOWMHandler(resp, data) {
 
 		// <<<<<<<<<< Begin Icon Processing  >>>>>>>>>>
 		String imgName = (myGetData('iconType')== sTRU ? getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) : getImgName(myGetData('forecast_id').toInteger(), myGetData('is_day')))
-		sendEventPublish(name: 'condition_icon', value: sIMGS + myGetData(sICON) + imgName + imgT1 + sRB)
-		sendEventPublish(name: 'condition_iconWithText', value: sIMGS + myGetData(sICON) + imgName + imgT1 + sRB+ sBR + (myGetData('iconType')== sTRU ? myGetData('condition_text') : myGetData('forecast_text')))
+		sendEventPublish(name: 'condition_icon', value: sIMGS5 + myGetData(sICON) + imgName + imgT1 + sRB)
+		sendEventPublish(name: 'condition_iconWithText', value: sIMGS5 + myGetData(sICON) + imgName + imgT1 + sRB+ sBR + (myGetData('iconType')== sTRU ? myGetData('condition_text') : myGetData('forecast_text')))
 		sendEventPublish(name: 'condition_icon_url', value: myGetData(sICON) + imgName + imgT1)
 		myUpdData('condition_icon_url', myGetData(sICON) + imgName + imgT1)
 		sendEventPublish(name: 'condition_icon_only', value: imgName.split('/')[-1].replaceFirst('\\?raw=true',sBLK))
@@ -648,12 +646,9 @@ void clearAlerts(){
 	myUpdData('alert', sNCWA)
 	myUpdData('alertDescr', sNCWA)
 	myUpdData('alertSender', sSPC)
-	//	https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
-	String al3 = '<a style="font-style:italic" href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">'
+	String al3 = '<a style="font-style:italic">'	
 	myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
 	myUpdData('alertLink', sAB + myGetData('condition_text') + sACB)
-	myUpdData('alertLink2', sAB + myGetData('condition_text') + sACB)
-	myUpdData('alertLink3', sAB + myGetData('condition_text') + sACB)
 	myUpdData('possAlert', sFLS)
 }
 
@@ -914,78 +909,61 @@ void PostPoll() {
 
 	buildweatherSummary()
 
-//	https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
-	String OWMIcon = '<a href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
-	String OWMIcon2 = '<a href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
-	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
+	String OWMIcon = '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a> @ ' + myGetData(sSUMLST)
 //  <<<<<<<<<< Begin Built 3dayfcstTile >>>>>>>>>>
 	if(threedayTilePublish) {
 		Boolean gitclose = (myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))
-		String iconClose = (gitclose ? '?raw=true' : sBLK)
-		String my3day = '<style type="text/css">'
-		my3day += '.centerImage'
-		my3day += '{text-align:center;display:inline;height:50%}'
-		my3day += '</style>'
-		my3day += '<table align="center">'
-		my3day += '<tr>'
-		my3day += sTD + '<B>' + myGetData('city') +'</B>' + sTDE
-		my3day += sTD+'Today'+sTDE
+		String iconClose = (gitclose ? '?raw=true>' : sRB)
+		String my3day = '<style type="text/css">.cI{height:45%}.cIb{height:80%}</style>'
+		my3day += '<table style="text-align:center;display:inline">'
+		my3day += sTR
+		my3day += '<B>' + myGetData('city') +'</B>'
+		my3day += sTD+'Today'
 		my3day += sTD + myGetData('day1')
-		my3day += sTD + myGetData('day2') + sTDE
-		my3day += '</tr>'
-		my3day += '<tr>'
-		my3day += sTD+'Now' + String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + sBR + 'Feels' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR) + sTDE
-		my3day += sTD + myGetData('imgName0') + sTDE
-		my3day += sTD + myGetData('imgName1') + sTDE
-		my3day += sTD + myGetData('imgName2') + sTDE
-		my3day += '</tr>'
-		my3day += '<tr>'
-		my3day += '<td></td>'
-		my3day += sTD + myGetData('condition_text') + sTDE
-		my3day += sTD + myGetData('forecast_text1') + sTDE
-		my3day += sTD + myGetData('forecast_text2') + sTDE
-		my3day += '</tr>'
-		my3day += '<tr>'
+		my3day += sTD + myGetData('day2')
+		my3day += sTR
+		my3day += 'Now' + String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + sBR + 'Feels' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR)
+		my3day += sTD + myGetData('imgName0')
+		my3day += sTD + myGetData('imgName1')
+		my3day += sTD + myGetData('imgName2')
+		my3day += sTR
+		my3day += sTD + myGetData('condition_text')
+		my3day += sTD + myGetData('forecast_text1')
+		my3day += sTD + myGetData('forecast_text2')
+		my3day += sTR
 		if(myGetData('threedayLH')==sFLS){
-			my3day += sTD+'Low High'+sTDE
-			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + sTDE
-			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow1').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastHigh1').toBigDecimal()) + myGetData(sTMETR)  + sTDE
-			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow2').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastHigh2').toBigDecimal()) + myGetData(sTMETR) + sTDE
+			my3day += 'Low High'
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR)
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow1').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastHigh1').toBigDecimal()) + myGetData(sTMETR)
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastLow2').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastHigh2').toBigDecimal()) + myGetData(sTMETR)
 		}else{
-			my3day += sTD+'High Low'+sTDE
-			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR) + sTDE
-			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh1').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastLow1').toBigDecimal()) + myGetData(sTMETR)  + sTDE
-			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh2').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastLow2').toBigDecimal()) + myGetData(sTMETR) + sTDE
+			my3day += 'High Low'
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastLow').toBigDecimal()) + myGetData(sTMETR)
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh1').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastLow1').toBigDecimal()) + myGetData(sTMETR)
+			my3day += sTD + String.format(ddisp_twd, myGetData('forecastHigh2').toBigDecimal()) + myGetData(sTMETR) + sSPC + String.format(ddisp_twd, myGetData('forecastLow2').toBigDecimal()) + myGetData(sTMETR)
 		}
-		my3day += '</tr>'
-		my3day += '<tr>'
-		my3day += sTD+'PoP Precip'+sTDE
-		my3day += sTD + myGetData('PoP') + '% ' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None') + sTDE
-		my3day += sTD + myGetData('PoP1') + '% ' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip1').toBigDecimal()) + myGetData(sRMETR) : 'None') + sTDE
-		my3day += sTD + myGetData('PoP2') + '% ' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip2').toBigDecimal()) + myGetData(sRMETR) : 'None') + sTDE
-		my3day += '</tr>'
-		my3day += '</table>'
-		my3day += '<table align="center">'
-		my3day += '<tr>'
-		my3day += sTD+sIMGS + myGetData(sICON) + 'wsr.png' + iconClose + sRB + myGetData('localSunrise') + sTDE
-		my3day += sTD+sIMGS + myGetData(sICON) + 'wss.png' + iconClose + sRB + myGetData('localSunset') + sTDE
-		my3day += '</tr></table>'
+		my3day += sTR
+		my3day += 'PoP Precip'
+		my3day += sTD + myGetData('PoP') + '% ' + (myGetData('Precip0').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip0').toBigDecimal()) + myGetData(sRMETR) : 'None')
+		my3day += sTD + myGetData('PoP1') + '% ' + (myGetData('Precip1').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip1').toBigDecimal()) + myGetData(sRMETR) : 'None')
+		my3day += sTD + myGetData('PoP2') + '% ' + (myGetData('Precip2').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('Precip2').toBigDecimal()) + myGetData(sRMETR) : 'None')
+		my3day += '<tr style="font-size:85%">' + '<td  colspan="4">'
+		my3day += sIMGS8 + myGetData(sICON) + 'wsr.png' + iconClose + myGetData('localSunrise') + sSPC + sIMGS8 + myGetData(sICON) + 'wss.png' + iconClose + myGetData('localSunset')
 
-		if(my3day.length() + 27 > 1024) {
-			my3day = 'Too much data to display.</br></br>Current length (' + my3day.length() + ') exceeds maximum tile length by ' + 1024 - my3day.length() - 27 + ' characters.'
-		}else if((my3day.length() + OWMIcon.length()) < 1025) {
+		if((my3day.length() + OWMIcon.length()+8) < 1025) {
 			my3day += OWMIcon
-		}else if((my3day.length() + OWMIcon2.length()) < 1025) {
-			my3day += OWMIcon2
-		}else if((my3day.length() + OWMText.length()) < 1025) {
+		}else if((my3day.length() + OWMText.length()+8) < 1025) {
 			my3day += OWMText
 		}else{
 			my3day += 'OpenWeatherMap.org'
 		}
-		my3day += '@' + myGetData(sSUMLST)
-		LOGINFO('my3day character length: ' + my3day.length() + '; OWMIcon length: ' + OWMIcon.length() + '; OWMIcon2 length: ' + OWMIcon2.length() + '; OWMText length: ' + OWMText.length())
+		my3day += '</table>'
+		if(my3day.length() > 1024) {
+			LOGWARN('Too much data to display.</br></br>Current threedayfcstTile length (' + my3day.length() + ') exceeds maximum tile length by ' + (my3day.length() - 1024).toString()  + ' characters.')
+		}
 		sendEvent(name: 'threedayfcstTile', value: my3day.take(1024))
-	}	
+	}
 //  >>>>>>>>>> End Built 3dayfcstTile <<<<<<<<<<
 	buildMyText()
 }
@@ -1009,18 +987,15 @@ void buildMyText() {
 	String ddisp_p = myGetData('ddisp_p')==sNULL ? '%4.0f' : myGetData('ddisp_p')
 	String ddisp_r = myGetData('ddisp_r')==sNULL ? '%2.0f' : myGetData('ddisp_r')
 //  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
-	//	https://tinyurl.com/y42s2ndy points to https://openweathermap.org/city/
-	String OWMIcon = '<a href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">' + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
-	String OWMIcon2 = '<a href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank">' + sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
-	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a>'
+	String OWMIcon = '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a> @ ' + myGetData(sSUMLST)
 
 	if(myTilePublish){ // don't bother setting these values if it's not enabled
 		Boolean gitclose = (myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))
-		String iconClose = (gitclose ? '?raw=true' : sBLK)
-		String iconCloseStyled = iconClose + sRB
+		String iconClose = (gitclose ? '?raw=true>' : sRB)
 		Boolean noAlert = (!alertPublish) ? true : (!myGetData('possAlert') || myGetData('possAlert')==sBLK || myGetData('possAlert')==sFLS)
 		String alertStyleOpen = (noAlert ? sBLK :  '<span>')
-		String alertStyleClose = (noAlert ? sBR : sCSPAN+sBR)
+		String alertStyleClose = (noAlert ? sBLK : sCSPAN)
 
 		BigDecimal wgust
 		if(myGetData('wind_gust').toBigDecimal() < 1.0 ) {
@@ -1028,94 +1003,37 @@ void buildMyText() {
 		}else{
 			wgust = myGetData('wind_gust').toBigDecimal()
 		}
-
-		String mytextb = '<span style="display:inline"><a href="https://tinyurl.com/y42s2ndy/' + myGetData('OWML') + '" target="_blank"><B>' + myGetData('city') + '</B></a><br>'
-		String mytextm1 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
-		String mytextm2 = myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink2')) + alertStyleClose
-		String mytexte = String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + sIMGS + myGetData('condition_icon_url') + iconClose + ' style="height:2.2em;display:inline">'
-		mytexte+= ' Feels like ' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR) + sBR+sCSPAN
-		mytexte+= '<span style="font-size:.9em">'+sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled + myGetData('wind_direction') + sSPC
-		mytexte+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
-		mytexte+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + sSPC + myGetData(sDMETR)) + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled + String.format(ddisp_p, myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + ' '+sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled
-		mytexte+= myGetData('humidity') + '% ' + sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled + myGetData('percentPrecip') + '%' + sIMGS + myGetData(sICON) + 'wr.png' + iconCloseStyled + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
-		mytexte+= sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled + myGetData('localSunrise') + '     '+sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled
-		mytexte+= myGetData('localSunset') + '     Updated: ' + myGetData(sSUMLST)
-
-		String mytext = mytextb + mytextm1 + mytexte
-		if((mytext.length() + OWMIcon.length() + 10) < 1025) {
-			mytext+= sBR + OWMIcon + sCSPAN
-		} else if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
-			mytext+= sBR + OWMIcon2 + sCSPAN
-		} else if((mytext.length() + OWMText.length() + 10) < 1025) {
-			mytext+= sBR + OWMText + sCSPAN
+		String mytext = '<style type="text/css">.cI{height:45%}.cIb{height:80%}</style>'
+		mytext += '<table style="text-align:center;display:inline">'
+		mytext += sTR + '<B>' + myGetData('city') +'</B>'
+		mytext += sTR + myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
+		mytext += sTR + String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR)  + myGetData('imgName0')
+		mytext += 'Feels like ' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR)
+		mytext += '<tr style="font-size:85%">' + sTD + sIMGS8 + myGetData(sICON) + myGetData('wind_bft_icon') + iconClose + myGetData('wind_direction')
+		mytext += (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
+		mytext += ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + sSPC + myGetData(sDMETR))
+		String mytexte = '<tr style="font-size:80%">' +sTD + sIMGS8 + myGetData(sICON) + 'wb.png' + iconClose + String.format(ddisp_p, myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + sSPC + sIMGS8 + myGetData(sICON) + 'wh.png' + iconClose
+		mytexte += myGetData('humidity') + '%' + sSPC + sIMGS8 + myGetData(sICON) + 'wu.png' + iconClose + myGetData('percentPrecip') + '%' + sSPC + sIMGS8 + myGetData(sICON) + 'wr.png' + iconClose + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
+		mytexte += sIMGS8 + myGetData(sICON) + 'wsr.png' + iconClose + myGetData('localSunrise') + sSPC + sIMGS8 + myGetData(sICON) + 'wss.png' + iconClose + myGetData('localSunset')
+		if((mytext.length() + mytexte.length() + OWMIcon.length()+8) < 1025) {
+			mytext+= mytexte + OWMIcon
 		}else{
-			mytext = mytextb + mytextm2 + mytexte
-			if((mytext.length() + OWMIcon.length() + 10) < 1025) {
-				mytext+= sBR + OWMIcon + sCSPAN
-			}else if((mytext.length() + OWMIcon2.length() + 10) < 1025) {
-				mytext+= sBR + OWMIcon2 + sCSPAN
-			}else if((mytext.length() + OWMText.length() + 10) < 1025) {
-				mytext+= sBR + OWMText + sCSPAN
+			mytexte = '<tr style="font-size:80%">' + sTD + '<B>B:</B> ' + String.format(ddisp_p, myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + sSPC + '<B>H:</B> '
+			mytexte += myGetData('humidity') + '%' + sSPC + '<B>PoP:</B> ' + myGetData('percentPrecip') + '%' + sSPC + '<B>Precip:</B> ' + (myGetData('rainToday').toBigDecimal() > 0 ? String.format(ddisp_r, myGetData('rainToday').toBigDecimal()) + sSPC + myGetData(sRMETR) : 'None') + sBR
+			mytexte += '<B>SRise:</B> ' + myGetData('localSunrise') + sSPC + '<B>SSet:</B> ' + myGetData('localSunset')
+			mytext+= mytexte
+			if((mytext.length() + OWMIcon.length()+8) < 1025) {
+				mytext+= OWMIcon
+			}else if((mytext.length() + OWMText.length()+8) < 1025) {
+				mytext+= OWMText
 			}else{
-				mytext+= sBR+'Forecast by OpenWeatherMap.org'+sCSPAN
+				mytext+= 'OpenWeatherMap.org'
 			}
 		}
+		mytext+= '</table>'
 		if(mytext.length() > 1024) {
-			Integer iconfilepath = (sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled).length()
-			Integer excess = (mytext.length() - 1024)
-			Integer removeicons
-			Integer ics = iconfilepath + iconCloseStyled.length()
-			if((excess - ics + 11) < 0) {
-				removeicons = 1  //Remove sunset
-			}else if((excess - (ics * 2) + 20) < 0) {
-				removeicons = 2 //remove sunset and sunrise
-			}else if((excess - (ics * 3) + 31) < 0) {
-				removeicons = 3 //remove sunset, sunrise, Precip
-			}else if((excess - (ics * 4) + 38) < 0) {
-				removeicons = 4 //remove sunset, sunrise, Precip, Humidity
-			}else if((excess - (ics * 5) + 42) < 0) {
-				removeicons = 5 //remove sunset, sunrise, Precip, Humidity, Pressure
-			}else if((excess - (ics * 6) + 42) < 0) {
-				removeicons = 6 //remove sunset, sunrise, Precip, Humidity, Pressure, Wind
-			}else if((excess - (ics * 7) + 42) < 0) {
-				removeicons = 7 //remove sunset, sunrise, Precip, Humidity, Pressure, Wind, condition
-			}else{
-				removeicons = 8 // still need to remove html formatting
-			}
-			if(removeicons < 8) {
-				LOGDEBUG('myTile exceeds 1,024 characters (' + mytext.length() + ') ... removing last ' + (removeicons + 1).toString() + ' icons.')
-				mytext = '<span>' + myGetData('city') + sBR
-				mytext+= myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alert')) + alertStyleClose + sBR
-				mytext+= String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + (removeicons < 7 ? sIMGS + myGetData('condition_icon_url') + iconClose + ' style=\"height:2.0em;display:inline;\">' : sBLK)
-				mytext+= ' Feels like ' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR) + sBR+sCSPAN
-				mytext+= '<span style="font-size:.8em">' + (removeicons < (raintoday ? 7 : 6) ? sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled : sBLK) + myGetData('wind_direction') + sSPC
-				mytext+= (removeicons < 6 ? sIMGS + myGetData(sICON) + myGetData('wind_bft_icon') + iconCloseStyled : sBLK) + myGetData('wind_direction') + sSPC
-				mytext+= (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
-				mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + sSPC + myGetData(sDMETR)) + sBR
-				mytext+= (removeicons < 5 ? sIMGS + myGetData(sICON) + 'wb.png' + iconCloseStyled : 'Bar: ') + String.format(ddisp_p, myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + '  '
-				mytext+= (removeicons < 4 ? sIMGS + myGetData(sICON) + 'wh.png' + iconCloseStyled : ' | Hum: ') + myGetData('humidity') + '%  '
-				mytext+= (removeicons < 3 ? sIMGS + myGetData(sICON) + 'wu.png' + iconCloseStyled : ' | PoP: ') + myGetData('percentPrecip') + '%' + sBR
-				mytext+= (removeicons < 2 ? sIMGS + myGetData(sICON) + 'wsr.png' + iconCloseStyled : 'Sunrise: ') + myGetData('localSunrise') + '  '
-				mytext+= (removeicons < 1 ? sIMGS + myGetData(sICON) + 'wss.png' + iconCloseStyled : ' | Sunset: ') + myGetData('localSunset')
-				mytext+= '     Updated ' + myGetData(sSUMLST) + sCSPAN
-			}else{
-				LOGINFO('myTile still exceeds 1,024 characters (' + mytext.length() + ') ... removing all formatting.')
-				mytext = myGetData('city') + sBR
-				mytext+= myGetData('condition_text') + (noAlert ? sBLK : ' | ') + (noAlert ? sBLK : myGetData('alert')) + sBR
-				mytext+= String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR) + ' Feels like ' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR) + sBR
-				mytext+= myGetData('wind_direction') + sSPC
-				mytext+= myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR)
-				mytext+= ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + sSPC + myGetData(sDMETR)) + sBR
-				mytext+= 'Bar: ' + String.format(ddisp_p, myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR)
-				mytext+= ' | Hum: ' + myGetData('humidity') + '%  ' + ' | PoP: ' + myGetData('percentPrecip') + '%' + sBR
-				mytext+= 'Sunrise: ' + myGetData('localSunrise') + ' | Sunset:' + myGetData('localSunset') + ' |  Updated:' + myGetData(sSUMLST)
-				if(mytext.length() > 1024) {
-					LOGINFO('myTile even still exceeds 1,024 characters (' + mytext.length() + ') ... truncating.')
-				}
-			}
+			LOGWARN('Too much data to display.</br></br>Current myTile length (' + mytext.length() + ') exceeds maximum tile length by ' + (mytext.length() - 1024).toString()  + ' characters.')
 		}
-		LOGINFO('mytext: ' + mytext)
 		sendEvent(name: 'myTile', value: mytext.take(1024))
 	}
 //  >>>>>>>>>> End Built mytext <<<<<<<<<<
@@ -1209,7 +1127,7 @@ void initMe() {
 	myUpdData('iconType', iconType ? sTRU : sFLS)
 	String iconLocation = (settings.iconLocation ?: 'https://tinyurl.com/y6xrbhpf/')
 	myUpdData(sICON, iconLocation)
-	state.OWM = '<a href="https://openweathermap.org" target="_blank">'+sIMGS + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
+	state.OWM = '<a href="https://openweathermap.org" target="_blank">'+sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a>'
 	setDateTimeFormats((String)settings.datetimeFormat)
 	String distanceFormat = (settings.distanceFormat ?: 'Miles (mph)')
 	String pressureFormat = (settings.pressureFormat ?: 'Inches')
