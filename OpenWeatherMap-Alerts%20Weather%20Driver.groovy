@@ -1009,7 +1009,7 @@ void buildMyText() {
 		mytext += sTR + myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
 		mytext += sTR + String.format(ddisp_twd, myGetData(sTEMP).toBigDecimal()) + myGetData(sTMETR)  + myGetData('imgName0')
 		mytext += 'Feels like ' + String.format(ddisp_twd, myGetData('feelsLike').toBigDecimal()) + myGetData(sTMETR)
-		mytext += '<tr style="font-size:85%">' + sTD + sIMGS8 + myGetData(sICON) + myGetData('wind_bft_icon') + iconClose + myGetData('wind_direction')
+		mytext += '<tr style="font-size:85%">' + sTD + sIMGS8 + myGetData(sICON) + myGetData('wind_bft_icon') + iconClose + myGetData('wind_direction') + sSPC
 		mytext += (myGetData('wind').toBigDecimal() < 1.0 ? 'calm' : '@ ' + String.format(ddisp_twd, myGetData('wind').toBigDecimal()) + sSPC + myGetData(sDMETR))
 		mytext += ', gusts ' + ((wgust < 1.0) ? 'calm' :  '@ ' + String.format(ddisp_twd, wgust) + sSPC + myGetData(sDMETR))
 		String mytexte = '<tr style="font-size:80%">' +sTD + sIMGS8 + myGetData(sICON) + 'wb.png' + iconClose + String.format(ddisp_p, myGetData('pressure').toBigDecimal()) + sSPC + myGetData(sPMETR) + sSPC + sIMGS8 + myGetData(sICON) + 'wh.png' + iconClose
