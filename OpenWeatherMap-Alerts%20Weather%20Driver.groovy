@@ -282,7 +282,7 @@ void pollSunRiseSet() {
 	if(ifreInstalled()) { updated(); return }
 	String currDate = new Date().format('yyyy-MM-dd', TimeZone.getDefault())
 	LOGINFO('Polling Sunrise-Sunset.org')
-	Map requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0' ]
+	Map requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0', timeout: 20 ]
 	if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0&date=' + currDate ]}
 	LOGINFO('Poll Sunrise-Sunset: ' + requestParams.toString())
 	asynchttpGet('sunRiseSetHandler', requestParams)
@@ -330,7 +330,7 @@ void pollOWM() {
 //	String altLat = "40.6" //"38.627003" //"30.6953657"
 //	String altLon = "-74.53" //"-90.199402" //-88.0398912"
 
-	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey ]
+	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
 	asynchttpGet('pollOWMHandler', ParamsOWM)
 }
@@ -844,7 +844,7 @@ void PostPoll() {
 	sendEvent(name: 'humidity', value: myGetData('humidity').toBigDecimal(), unit: '%')
 	sendEvent(name: 'illuminance', value: myGetData('illuminance').toInteger(), unit: 'lx')
 	sendEvent(name: 'pressure', value: myGetData('pressure').toBigDecimal(), unit: myGetData(sPMETR))
-	sendEvent(name: 'pressured', value: String.format(ddisp_p, myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
+	if(dashSharpToolsPublish || dashSmartTilesPublish)sendEvent(name: 'pressured', value: String.format(ddisp_p, myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
 	sendEvent(name: sTEMP, value: myGetData(sTEMP).toBigDecimal(), unit: myGetData(sTMETR))
 	sendEvent(name: 'ultravioletIndex', value: myGetData('ultravioletIndex').toBigDecimal(), unit: 'uvi')
 	sendEvent(name: 'feelsLike', value: myGetData('feelsLike').toBigDecimal(), unit: myGetData(sTMETR))
@@ -1140,11 +1140,12 @@ void initMe() {
 	setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
 	pollOWMl()
 }
+
 void pollOWMl() {
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
 //	String altLat = "40.6" //"38.627003" //"30.6953657"
 //	String altLon = "-74.53" //"-90.199402" //-88.0398912"
-	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey ]
+	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org Location: ' + ParamsOWMl)
 	asynchttpGet('pollOWMlHandler', ParamsOWMl)
 }
@@ -1220,7 +1221,7 @@ void initialize_poll() {
 			default:
 				mySched = "${dsseconds} ${minutes60} ${hours3}/3 * * ? *"
 		}
-	schedule(mySched, pollOWM)
+		schedule(mySched, pollOWM)
 	}
 }
 
@@ -1628,7 +1629,7 @@ void sendEventPublish(evt)	{
 // Check Version   ***** with great thanks and acknowledgment to Cobra (CobraVmax) for his original code ****
 void updateCheck()
 {
-	Map paramsUD = [uri: 'https://raw.githubusercontent.com/Scottma61/Hubitat/master/docs/version2.json'] //https://hubitatcommunity.github.io/???/version2.json"]
+	Map paramsUD = [uri: 'https://raw.githubusercontent.com/Scottma61/Hubitat/master/docs/version2.json', timeout: 20] //https://hubitatcommunity.github.io/???/version2.json"]
 	asynchttpGet('updateCheckHandler', paramsUD)
 }
 
