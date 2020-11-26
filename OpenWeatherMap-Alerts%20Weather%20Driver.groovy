@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 11/06/2020
+	Last Update 11/26/2020
 	{ Left room below to document version changes...}
 
+	V0.4.7	11/26/2020	Bug fixes.  Fix timeouts on http calls (by @nh.schottfam).
 	V0.4.6	11/06/2020	Refactored the dashboard tiles.
 	V0.4.5	10/31/2020	Tweaked threedayfcstTile for small screens.
 	V0.4.4	10/30/2020	More code cleanups/reductions/optimizations by @nh.schottfam.
@@ -107,7 +108,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.4.6'  }
+static String version()	{  return '0.4.7'  }
 import groovy.transform.Field
 
 metadata {
@@ -282,8 +283,8 @@ void pollSunRiseSet() {
 	if(ifreInstalled()) { updated(); return }
 	String currDate = new Date().format('yyyy-MM-dd', TimeZone.getDefault())
 	LOGINFO('Polling Sunrise-Sunset.org')
-	Map requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0' ]
-	if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0&date=' + currDate ]}
+	Map requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0', timeout: 20 ]
+	if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0&date=' + currDate, timeout: 20 ]}
 	LOGINFO('Poll Sunrise-Sunset: ' + requestParams.toString())
 	asynchttpGet('sunRiseSetHandler', requestParams)
 }
@@ -330,7 +331,7 @@ void pollOWM() {
 //	String altLat = "40.6" //"38.627003" //"30.6953657"
 //	String altLon = "-74.53" //"-90.199402" //-88.0398912"
 
-	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey ]
+	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
 	asynchttpGet('pollOWMHandler', ParamsOWM)
 }
@@ -609,7 +610,7 @@ void pollOWMHandler(resp, data) {
 				}
 			}
 			//  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
-			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null || myGetData('alertSender')==sSPC ? '' : ' issued by ' + myGetData('alertSender')) + '.<br>'
+			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null || myGetData('alertSender')==sSPC ? '' : ' issued by ' + myGetData('alertSender')) + sBR
 			alertTile+= myGetData('alertTileLink') + sBR + '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
 			myUpdData('alertTile', alertTile)
 			sendEvent(name: 'alert', value: myGetData('alert'))
@@ -803,7 +804,7 @@ void updateLux(Boolean pollAgain=true) {
 		}else{
 			newLight =  sTRU
 		}
-		if(newLight != myGetData('is_lightOld')) {
+		if(newLight != myGetData('is_lightOld') || myGetData('condition_id')==sNULL || myGetData('cloud')==sNULL) {
 			pollOWM()
 			return
 		}
@@ -1144,7 +1145,7 @@ void pollOWMl() {
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
 //	String altLat = "40.6" //"38.627003" //"30.6953657"
 //	String altLon = "-74.53" //"-90.199402" //-88.0398912"
-	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey ]
+	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org Location: ' + ParamsOWMl)
 	asynchttpGet('pollOWMlHandler', ParamsOWMl)
 }
@@ -1220,7 +1221,7 @@ void initialize_poll() {
 			default:
 				mySched = "${dsseconds} ${minutes60} ${hours3}/3 * * ? *"
 		}
-	schedule(mySched, pollOWM)
+		schedule(mySched, pollOWM)
 	}
 }
 
