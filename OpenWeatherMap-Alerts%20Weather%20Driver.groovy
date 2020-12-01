@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 11/26/2020
+	Last Update 12/01/2020
 	{ Left room below to document version changes...}
 
+	V0.4.8	12/01/2020	Added ability to select Weather Alert source (none/OWM/Weather.gov {US Only}).
 	V0.4.7	11/26/2020	Bug fixes.  Fix timeouts on http calls (by @nh.schottfam).
 	V0.4.6	11/06/2020	Refactored the dashboard tiles.
 	V0.4.5	10/31/2020	Tweaked threedayfcstTile for small screens.
@@ -108,7 +109,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.4.7'  }
+static String version()	{  return '0.4.8'  }
 import groovy.transform.Field
 
 metadata {
@@ -201,6 +202,7 @@ metadata {
 			input 'pollIntervalForecast', 'enum', title: 'External Source Poll Interval (daytime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
 			input 'pollIntervalForecastnight', 'enum', title: 'External Source Poll Interval (nighttime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
 			input 'logSet', 'bool', title: 'Enable extended Logging', description: '<i>Extended logging will turn off automatically after 30 minutes.</i>', required: true, defaultValue: false
+			input 'alertSource', 'enum', required: true, defaultValue: sONE, title: 'Weather Alert Source<br>0=None 1=OWM or 2=Weather.gov (US only)', options: [0:sZERO, 1:sONE, 2:sTWO]
 			input 'tempFormat', 'enum', required: true, defaultValue: 'Fahrenheit (°F)', title: 'Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)',  options: ['Fahrenheit (°F)', 'Celsius (°C)']
 			input 'TWDDecimals', 'enum', required: true, defaultValue: sZERO, title: 'Display decimals for Temperature & Wind Speed', options: [0:sZERO, 1:sONE, 2:'2', 3:'3', 4:'4']
 			input 'RDecimals', 'enum', required: true, defaultValue: sZERO, title: 'Display decimals for Precipitation', options: [0:sZERO, 1:sONE, 2:'2', 3:'3', 4:'4']
@@ -247,6 +249,7 @@ metadata {
 @Field static final String sCOLON=':'
 @Field static final String sZERO='0'
 @Field static final String sONE='1'
+@Field static final String sTWO='2'
 @Field static final String sDOT='.'
 @Field static final String sICON='iconLocation'
 @Field static final String sTMETR='tMetric'
@@ -326,11 +329,12 @@ void pollOWM() {
 		LOGWARN('OpenWeatherMap API Key not found.  Please configure in preferences.')
 		return
 	}
-	Map ParamsOWM
-/*  for testing a different Lat/Lon location uncommnent the two lines below */
-//	String altLat = "40.6" //"38.627003" //"30.6953657"
-//	String altLon = "-74.53" //"-90.199402" //-88.0398912"
 
+/*  for testing a different Lat/Lon location uncommnent the two lines below */
+//	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
+//	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
+	
+	Map ParamsOWM
 	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
 	asynchttpGet('pollOWMHandler', ParamsOWM)
@@ -582,36 +586,63 @@ void pollOWMHandler(resp, data) {
 		myUpdData('feelsLike', adjTemp(owm?.current?.feels_like, isF, mult_twd))
 
 		if(alertPublish) {
-			if(!owm.alerts) {
+			if(alertSource==sTWO) {
+/*  for testing a different Lat/Lon location uncommnent the two lines below */
+//	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
+//	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
+				pollWDG()
+			}
+			if((alertSource==sZERO) || (!owm.alerts && alertSource==sONE) || (myGetData('curAl')==sNCWA && alertSource==sTWO)) {
 				clearAlerts()
-			}else{			
-				Map owmAlerts0= owm?.alerts ? owm.alerts[0] : null
-				String curAl = owmAlerts0?.event==null ? sNCWA : owmAlerts0.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
-				String curAlSender = owmAlerts0?.sender_name==null ? sNULL : owmAlerts0.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
-				String curAlDescr = owmAlerts0?.description==null ? sNULL : owmAlerts0.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
-				LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
-				if(curAl==sNCWA) {
-					clearAlerts()
-				}else{
-					Integer alertCnt = 0
-					for(Integer i = 1;i<10;i++) {
-						if(owm?.alerts[i]?.event!=null) {
-							alertCnt = i
+			}else{
+				if(alertSource==sONE) {
+					Map owmAlerts0= owm?.alerts ? owm.alerts[0] : null
+					String curAl = owmAlerts0?.event==null ? sNCWA : owmAlerts0.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
+					String curAlSender = owmAlerts0?.sender_name==null ? sNULL : owmAlerts0.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
+					String curAlDescr = owmAlerts0?.description==null ? sNULL : owmAlerts0.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
+					myUpdData('alert', curAl + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
+					myUpdData('curAlSender', curAlSender)
+					myUpdData('curAlDescr', curAlDescr)
+					LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
+					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
+					myUpdData('alertLink',  '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
+					if(curAl==sNCWA) {
+						clearAlerts()
+					}else{
+						Integer alertCnt = 0
+						for(Integer i = 1;i<10;i++) {
+							if(owm?.alerts[i]?.event!=null) {
+								alertCnt = i
+							}
 						}
+						myUpdData('alertCnt', alertCnt.toString())
 					}
-					myUpdData('noAlert',sFLS)
-					myUpdData('alert', curAl + (alertCnt>0 ? ' +' + alertCnt.toString() : sBLK))
-					myUpdData('alertDescr', curAlDescr)
-					myUpdData('alertSender', curAlSender)
-					String al3 = '<a style="font-style:italic;color:red">'					
-					myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
-					myUpdData('alertLink',  al3+myGetData('alert')+sACB)
-					myUpdData('possAlert', sTRU)
+				}else{
+/*  for testing a different Lat/Lon location uncommnent the two lines below */
+//	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
+//	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
+					myUpdData('alert', myGetData('curAl') + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
+					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
+					myUpdData('alertLink',  '<a style="font-style:italic;color:red" href="https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
+					if(myGetData('curAl')==sNCWA) {
+						clearAlerts()
+					}
 				}
+				myUpdData('noAlert',sFLS)
+				myUpdData('alertDescr', myGetData('curAlDescr'))
+				myUpdData('alertSender', myGetData('curAlSender'))
+				myUpdData('possAlert', sTRU)
 			}
 			//  <<<<<<<<<< Begin Built alertTile >>>>>>>>>>
 			String alertTile = (myGetData('alert')== sNCWA ? 'No Weather Alerts for ' : 'Weather Alert for ') + myGetData('city') + (myGetData('alertSender')==null || myGetData('alertSender')==sSPC ? '' : ' issued by ' + myGetData('alertSender')) + sBR
-			alertTile+= myGetData('alertTileLink') + sBR + '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+			alertTile+= myGetData('alertTileLink') + sBR
+			if(alertSource==sONE) {
+				alertTile+= '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+			}else{
+				if(alertSource==sTWO) {
+    				alertTile+= '<a href=\"https://forecast.weather.gov/MapClick.php?lat=' + altLat + '&lon=' + altLon + '\" target=\"_blank\">' + sIMGS5 + myGetData(sICON) + 'NWS_240px.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+				}
+			}
 			myUpdData('alertTile', alertTile)
 			sendEvent(name: 'alert', value: myGetData('alert'))
 			sendEvent(name: 'alertDescr', value: myGetData('alertDescr'))
@@ -634,6 +665,48 @@ void pollOWMHandler(resp, data) {
 }
 // >>>>>>>>>> End OpenWeatherMap Poll Routine <<<<<<<<<<
 
+// <<<<<<<<<< Begin polling weather.gov for Alerts >>>>>>>>>>
+void pollWDG() {
+/*  for testing a different Lat/Lon location uncommnent the two lines below */
+//	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
+//	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
+	Map wdgParams = [ uri: 'https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon,
+		requestContentType:'application/json',
+		contentType:'application/json',
+		timeout: 20
+	]
+	LOGINFO('Poll api.weather.gov/alerts/active: ' + wdgParams)
+	asynchttpGet('pollWDGHandler', wdgParams)
+}
+
+void pollWDGHandler(resp, data) {
+	LOGINFO('Polling weather.gov')
+	if(resp.getStatus() != 200 && resp.getStatus() != 207) {
+		LOGWARN('Calling https://api.weather.gov/alerts/active?status=actual&message_type=alert,update&point=' + altLat + ',' + altLon)
+		LOGWARN(resp.getStatus() + sCOLON + resp.getErrorMessage())
+	}else{
+		Map wdg = parseJson(resp.data)
+		myUpdData('wdg', wdg.toString())
+		LOGINFO('weather.gov Data: ' + wdg.toString())
+		if(wdg.toString()==sNULL) {
+			pauseExecution(1000)
+			pollWDG()
+			return
+		}
+		myUpdData('curAl', wdg?.features[0]?.properties?.event == null ? sNCWA : wdg.features[0].properties.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK))
+		myUpdData('curAlSender', wdg?.features[0]?.properties?.senderName==null ? sNULL : wdg?.features[0]?.properties?.senderName.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK))
+	  	myUpdData('curAlDescr', wdg?.features[0]?.properties?.description==null ? sNULL : wdg?.features[0]?.properties?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024))
+		Integer alertCnt = 0
+		for(Integer i = 1;i<10;i++) {
+			if(wdg?.features[i]?.properties?.event!=null) {
+				alertCnt = i
+			}
+		}
+		myUpdData('alertCnt', alertCnt.toString())
+	}
+}
+// >>>>>>>>>> End polling weather.gov for Alerts <<<<<<<<<<
+					
 static String adjTemp(temp, Boolean isF, Integer mult_twd){
 	BigDecimal t_fl
 	t_fl = temp==null ? 0.00 : temp.toBigDecimal()
@@ -1087,8 +1160,8 @@ void initMe() {
 	Boolean altCoord = (settings.altCoord ?: false)
 	String valtLat = location.latitude.toString().replace(sSPC, sBLK)
 	String valtLon = location.longitude.toString().replace(sSPC, sBLK)
-	String altLat = settings.altLat ?: valtLat
-	String altLon = settings.altLon ?: valtLon
+//	String altLat = settings.altLat ?: valtLat
+//	String altLon = settings.altLon ?: valtLon
 	if (altCoord) {
 		if (altLat == null) {
 			device.updateSetting('altLat', [value:valtLat,type:'text'])
@@ -1140,11 +1213,12 @@ void initMe() {
 	String RDecimals = (settings.RDecimals ?: sZERO)
 	setDisplayDecimals(TWDDecimals, PDecimals, RDecimals)
 	pollOWMl()
+	if(settings.alertSource==sTWO) {pollWDG()}
 }
 void pollOWMl() {
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
-//	String altLat = "40.6" //"38.627003" //"30.6953657"
-//	String altLon = "-74.53" //"-90.199402" //-88.0398912"
+//	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
+//	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
 	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org Location: ' + ParamsOWMl)
 	asynchttpGet('pollOWMlHandler', ParamsOWMl)
