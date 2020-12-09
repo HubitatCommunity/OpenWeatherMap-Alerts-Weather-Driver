@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 12/03/2020
+	Last Update 12/08/2020
 	{ Left room below to document version changes...}
 
+	V0.5.0	12/08/2020	Bug fix for 'forecast_textn' optional attributes.
 	V0.4.9	12/03/2020	New tinyurl for icons.  Added tinyurl for weather.gov alert poll.
 	V0.4.8	12/01/2020	Added ability to select Weather Alert source (none/OWM/Weather.gov {US Only}).
 	V0.4.7	11/26/2020	Bug fixes.  Fix timeouts on http calls (by @nh.schottfam).
@@ -110,7 +111,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.4.8'  }
+static String version()	{  return '0.5.0'  }
 import groovy.transform.Field
 
 metadata {
@@ -535,6 +536,7 @@ void pollOWMHandler(resp, data) {
 
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
 		if(owmDaily && owmDaily[1] && owmDaily[2]) {
+			String tmpImg0= myGetData(sICON) + getImgName((!owmDaily[0].weather[0].id ? 999 : owmDaily[0].weather[0].id.toInteger()), sTRU) + imgT1
 			String tmpImg1= myGetData(sICON) + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1
 			String tmpImg2= myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1
 
@@ -566,7 +568,8 @@ void pollOWMHandler(resp, data) {
 				myUpdData('forecastEve1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
 				myUpdData('forecastNight1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
 
-				myUpdData('imgName0', sIMGS5 + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB)
+				myUpdData('imgName0', sIMGS5 + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB) // For current condition text for 'Today'
+//				myUpdData('imgName0', sIMGS5 + tmpImg0 + sRB) // For daily forecasted condition text for 'Today' 
 				myUpdData('imgName1', sIMGS5 + tmpImg1 + sRB)
 				myUpdData('imgName2', sIMGS5 + tmpImg2 + sRB)
 			}
@@ -946,7 +949,11 @@ void PostPoll() {
 	sendEventPublish(name: 'dewpoint', value: myGetData('dewpoint').toBigDecimal(), unit: myGetData(sTMETR))
 
 	sendEventPublish(name: 'forecast_code', value: myGetData('forecast_code'))
-	sendEventPublish(name: 'forecast_text', value: myGetData('forecast_text'))
+	if(forecast_textPublish) {
+		sendEventPublish(name: 'forecast_text', value: myGetData('forecast_text'))
+		sendEvent(name: 'forecast_text1', value: myGetData('forecast_text1'))
+		sendEvent(name: 'forecast_text2', value: myGetData('forecast_text2'))
+	}		
 	if(fcstHighLowPublish){ // don't bother setting these values if it's not enabled
 		sendEvent(name: 'forecastHigh', value: myGetData('forecastHigh').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastHigh1', value: myGetData('forecastHigh1').toBigDecimal(), unit: myGetData(sTMETR))
@@ -962,8 +969,6 @@ void PostPoll() {
 		sendEvent(name: 'forecastDay1', value: myGetData('forecastDay1').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastEve1', value: myGetData('forecastEve1').toBigDecimal(), unit: myGetData(sTMETR))
 		sendEvent(name: 'forecastNight1', value: myGetData('forecastNight1').toBigDecimal(), unit: myGetData(sTMETR))
-		sendEvent(name: 'forecast_text1', value: myGetData('forecast_text1'))
-		sendEvent(name: 'forecast_text2', value: myGetData('forecast_text2'))
 	}
 	sendEventPublish(name: 'illuminated', value: myGetData('illuminated') + ' lx')
 	sendEventPublish(name: 'is_day', value: myGetData('is_day'))
