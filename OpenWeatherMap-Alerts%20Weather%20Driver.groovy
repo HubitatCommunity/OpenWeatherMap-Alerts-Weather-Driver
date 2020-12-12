@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 12/08/2020
+	Last Update 12/12/2020
 	{ Left room below to document version changes...}
 
+	V0.5.1	12/12/2020	Changes to dahboard tile logo/hyperlinks when using weather.gov for alerts and there is an alert.
 	V0.5.0	12/08/2020	Bug fix for 'forecast_textn' optional attributes.
 	V0.4.9	12/03/2020	New tinyurl for icons.  Added tinyurl for weather.gov alert poll.
 	V0.4.8	12/01/2020	Added ability to select Weather Alert source (none/OWM/Weather.gov {US Only}).
@@ -111,7 +112,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.5.0'  }
+static String version()	{  return '0.5.1'  }
 import groovy.transform.Field
 
 metadata {
@@ -610,7 +611,7 @@ void pollOWMHandler(resp, data) {
 					myUpdData('curAlDescr', curAlDescr)
 					LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
 					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
-					myUpdData('alertLink',  '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
+					myUpdData('alertLink',  '<a style="font-style:italic;color:red">'+myGetData('alert')+sACB)
 					if(curAl==sNCWA) {
 						clearAlerts()
 					}else{
@@ -629,7 +630,7 @@ void pollOWMHandler(resp, data) {
 					myUpdData('alert', myGetData('curAl') + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
 // https://tinyurl.com/zznws points to https://forecast.weather.gov/MapClick.php					
 					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
-					myUpdData('alertLink',  '<a style="font-style:italic;color:red" href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
+					myUpdData('alertLink',  '<a style="font-style:italic;color:red">'+myGetData('alert')+sACB)
 					if(myGetData('curAl')==sNCWA) {
 						clearAlerts()
 					}
@@ -991,8 +992,15 @@ void PostPoll() {
 
 	buildweatherSummary()
 
-	String OWMIcon = '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
-	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a> @ ' + myGetData(sSUMLST)
+	String OWMIcon
+	String OWMText
+	if((alertSource==sZERO) || (alertSource==sONE) || (myGetData('curAl')==sNCWA && alertSource==sTWO)) {
+		OWMIcon = '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+		OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a> @ ' + myGetData(sSUMLST)
+	}else{
+		OWMIcon = '<a href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'NWS_240px.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+		OWMText = '<a href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon + '" target="_blank">Weather.gov</a> @ ' + myGetData(sSUMLST)
+	}
 //  <<<<<<<<<< Begin Built 3dayfcstTile >>>>>>>>>>
 	if(threedayTilePublish) {
 		Boolean gitclose = (myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))
@@ -1069,9 +1077,15 @@ void buildMyText() {
 	String ddisp_p = myGetData('ddisp_p')==sNULL ? '%4.0f' : myGetData('ddisp_p')
 	String ddisp_r = myGetData('ddisp_r')==sNULL ? '%2.0f' : myGetData('ddisp_r')
 //  <<<<<<<<<< Begin Built mytext >>>>>>>>>>
-	String OWMIcon = '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
-	String OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a> @ ' + myGetData(sSUMLST)
-
+	String OWMIcon
+	String OWMText
+	if((alertSource==sZERO) || (alertSource==sONE) || (myGetData('curAl')==sNCWA && alertSource==sTWO)) {
+		OWMIcon = '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+		OWMText = '<a href="https://openweathermap.org" target="_blank">OpenWeatherMap.org</a> @ ' + myGetData(sSUMLST)
+	}else{
+		OWMIcon = '<a href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'NWS_240px.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+		OWMText = '<a href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon + '" target="_blank">Weather.gov</a> @ ' + myGetData(sSUMLST)
+	}
 	if(myTilePublish){ // don't bother setting these values if it's not enabled
 		Boolean gitclose = (myGetData(sICON).toLowerCase().contains('://github.com/')) && (myGetData(sICON).toLowerCase().contains('/blob/master/'))
 		String iconClose = (gitclose ? '?raw=true>' : sRB)
