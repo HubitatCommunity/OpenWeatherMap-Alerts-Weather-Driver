@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 12/12/2020
+	Last Update 01/26/2021
 	{ Left room below to document version changes...}
 
+	V0.5.2	01/26/2021	Corrected a display issue on Alerts.
 	V0.5.1	12/12/2020	Changes to dahboard tile logo/hyperlinks when using weather.gov for alerts and there is an alert.
 	V0.5.0	12/08/2020	Bug fix for 'forecast_textn' optional attributes.
 	V0.4.9	12/03/2020	New tinyurl for icons.  Added tinyurl for weather.gov alert poll.
@@ -112,7 +113,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.5.1'  }
+static String version()	{  return '0.5.2'  }
 import groovy.transform.Field
 
 metadata {
@@ -606,12 +607,6 @@ void pollOWMHandler(resp, data) {
 					String curAl = owmAlerts0?.event==null ? sNCWA : owmAlerts0.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
 					String curAlSender = owmAlerts0?.sender_name==null ? sNULL : owmAlerts0.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
 					String curAlDescr = owmAlerts0?.description==null ? sNULL : owmAlerts0.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
-					myUpdData('alert', curAl + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
-					myUpdData('curAlSender', curAlSender)
-					myUpdData('curAlDescr', curAlDescr)
-					LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
-					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
-					myUpdData('alertLink',  '<a style="font-style:italic;color:red">'+myGetData('alert')+sACB)
 					if(curAl==sNCWA) {
 						clearAlerts()
 					}else{
@@ -623,6 +618,12 @@ void pollOWMHandler(resp, data) {
 						}
 						myUpdData('alertCnt', alertCnt.toString())
 					}
+					myUpdData('alert', curAl + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
+					myUpdData('curAlSender', curAlSender)
+					myUpdData('curAlDescr', curAlDescr)
+					LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
+					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
+					myUpdData('alertLink',  '<a style="font-style:italic;color:red">'+myGetData('alert')+sACB)
 				}else{
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
 //	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
