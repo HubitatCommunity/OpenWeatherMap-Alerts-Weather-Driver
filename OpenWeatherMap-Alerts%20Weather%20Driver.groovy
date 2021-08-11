@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 01/26/2021
+	Last Update 08/11/2021
 	{ Left room below to document version changes...}
 
+	V0.5.3	08/11/2021	Exposed cloud coverage forecasts.
 	V0.5.2	01/26/2021	Corrected a display issue on Alerts.
 	V0.5.1	12/12/2020	Changes to dahboard tile logo/hyperlinks when using weather.gov for alerts and there is an alert.
 	V0.5.0	12/08/2020	Bug fix for 'forecast_textn' optional attributes.
@@ -113,7 +114,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
-static String version()	{  return '0.5.2'  }
+static String version()	{  return '0.5.3'  }
 import groovy.transform.Field
 
 metadata {
