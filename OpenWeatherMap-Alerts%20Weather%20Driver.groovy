@@ -195,6 +195,11 @@ metadata {
 		attribute 'rainTomorrow', sNUM
 		attribute 'rainDayAfterTomorrow', sNUM
 
+//cloudExtended
+		attribute 'cloudToday', sNUM
+		attribute 'cloudTomorrow', sNUM
+		attribute 'cloudDayAfterTomorrow', sNUM
+
 		command 'pollData'
 	}
 
@@ -536,6 +541,12 @@ void pollOWMHandler(resp, data) {
 			myUpdData('PoP2', (!owmDaily[2].pop ? 0 : Math.round(owmDaily[2].pop.toBigDecimal() * 100.toInteger())).toString())
 		}
 
+		if(owmDaily && cloudExtendedPublish) {
+			myUpdData('Cloud0', (owmDaily[0].clouds==null ? 1 : owmDaily[0].clouds <= 1 ? 1 : owmDaily[0].clouds).toString())
+			myUpdData('Cloud1', (owmDaily[1].clouds==null ? 1 : owmDaily[1].clouds <= 1 ? 1 : owmDaily[1].clouds).toString())
+			myUpdData('Cloud2', (owmDaily[2].clouds==null ? 1 : owmDaily[2].clouds <= 1 ? 1 : owmDaily[2].clouds).toString())
+		}
+
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
 		if(owmDaily && owmDaily[1] && owmDaily[2]) {
 			String tmpImg0= myGetData(sICON) + getImgName((!owmDaily[0].weather[0].id ? 999 : owmDaily[0].weather[0].id.toInteger()), sTRU) + imgT1
@@ -585,6 +596,12 @@ void pollOWMHandler(resp, data) {
 		if(precipExtendedPublish){
 			myUpdData('rainTomorrow', myGetData('Precip1'))
 			myUpdData('rainDayAfterTomorrow', myGetData('Precip2'))
+		}
+
+		if(cloudExtendedPublish){
+			myUpdData('cloudToday', myGetData('Cloud0'))
+			myUpdData('cloudTomorrow', myGetData('Cloud1'))
+			myUpdData('cloudDayAfterTomorrow', myGetData('Cloud2'))
 		}
 
 		updateLux(false)
@@ -984,6 +1001,12 @@ void PostPoll() {
 		sendEvent(name: 'rainTomorrow', value: myGetData('rainTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
 		sendEvent(name: 'rainDayAfterTomorrow', value: myGetData('rainDayAfterTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
 	}
+	if(cloudExtendedPublish){ // don't bother setting these values if it's not enabled
+		sendEvent(name: 'cloudToday', value: myGetData('cloudToday').toInteger(), unit: '%')
+		sendEvent(name: 'cloudTomorrow', value: myGetData('cloudTomorrow').toInteger(), unit: '%')
+		sendEvent(name: 'cloudDayAfterTomorrow', value: myGetData('cloudDayAfterTomorrow').toInteger(), unit: '%')
+	}
+
 	sendEventPublish(name: 'vis', value: Math.round(myGetData('vis').toBigDecimal() * mult_twd) / mult_twd, unit: (myGetData(sDMETR)=='MPH' ? 'miles' : 'kilometers'))
 	sendEventPublish(name: 'wind_degree', value: myGetData('wind_degree').toInteger(), unit: 'DEGREE')
 	sendEventPublish(name: 'wind_direction', value: myGetData('wind_direction'))
@@ -1694,6 +1717,7 @@ void sendEventPublish(evt)	{
 	'alert':					[t: 'Weather Alert', d: 'Display any weather alert?', ty: false, defa: sFLS],
 	'betwixt':					[t: 'Slice of Day', d: 'Display the slice-of-day?', ty: sSTR, defa: sFLS],
 	'cloud':					[t: 'Cloud', d: 'Display cloud coverage %?', ty: sNUM, defa: sFLS],
+	'cloudExtended':			[t: 'Cloud Forecast', d: 'Display cloud coverage forecast?', ty: false, defa: sFLS],
 	'condition_code':			[t: 'Condition Code', d: 'Display condition_code?', ty: sSTR, defa: sFLS],
 	'condition_icon_only':		[t: 'Condition Icon Only', d: 'Display condition_code_only?', ty: sSTR, defa: sFLS],
 	'condition_icon_url':		[t: 'Condition Icon URL', d: 'Display condition_code_url?', ty: sSTR, defa: sFLS],
