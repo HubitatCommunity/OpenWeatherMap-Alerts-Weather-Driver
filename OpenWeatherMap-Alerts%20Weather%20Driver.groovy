@@ -928,11 +928,12 @@ void PostPoll() {
 	String ddisp_p = myGetData('ddisp_p')==sNULL ? '%4.0f' : myGetData('ddisp_p')
 	String ddisp_r = myGetData('ddisp_r')==sNULL ? '%2.0f' : myGetData('ddisp_r')
 	
+	String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
+	String tfmt1=myGetData('timeFormat')
 	if(myGetData('sunRiseSet')!=sNULL) {
 		Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
 /*  SunriseSunset Data Elements */
-		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
-		String tfmt1=myGetData('timeFormat')
+
 		if(localSunrisePublish){  // don't bother setting these values if it's not enabled
 			sendEvent(name: tw_begin, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
 			sendEvent(name: sunriseTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
