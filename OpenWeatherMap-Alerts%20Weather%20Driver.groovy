@@ -114,6 +114,7 @@ The way the 'optional' attributes work:
 	available in the dashboard is to delete the virtual device and create a new one AND DO NOT SELECT the
 	attribute you do not want to show.
 */
+//file:noinspection GroovyUnusedAssignment
 static String version()	{  return '0.5.3'  }
 import groovy.transform.Field
 
@@ -329,6 +330,7 @@ void sunRiseSetHandler(resp, data) {
 		myUpdData('setTime2', new Date().parse(tfmt, (String)sunRiseSet.sunset).plus(2).format(tfmt1, TimeZone.getDefault()))
 	}else{
 		LOGWARN('Sunrise-Sunset api did not return data.')
+		myUpdData('sunRiseSet', sNULL)
 	}
 }
 // >>>>>>>>>> End Sunrise-Sunset Poll Routines <<<<<<<<<<
@@ -416,8 +418,8 @@ void pollOWMHandler(resp, data) {
 
 		myUpdData(sTEMP, adjTemp(owm?.current?.temp, isF, mult_twd))
 
-		String w_string_bft
-		String w_bft_icon
+		String w_string_bft=sNULL
+		String w_bft_icon=sNULL
 		BigDecimal t_ws = owm?.current?.wind_speed==null ? 0.00 : owm.current.wind_speed.toBigDecimal()
 		if(t_ws < 1.0) {
 			w_string_bft = 'Calm'; w_bft_icon = 'wb0.png'
@@ -469,8 +471,8 @@ void pollOWMHandler(resp, data) {
 
 		BigDecimal twb = owm?.current?.wind_deg==null ? 0.00 : owm.current.wind_deg.toBigDecimal()
 		myUpdData('wind_degree', twb.toInteger().toString())
-		String w_cardinal
-		String w_direction
+		String w_cardinal=sNULL
+		String w_direction=sNULL
 		if(twb < 11.25) {
 			w_cardinal = 'N'; w_direction = 'North'
 		}else if(twb < 33.75) {
@@ -553,6 +555,7 @@ void pollOWMHandler(resp, data) {
 			String tmpImg0= myGetData(sICON) + getImgName((!owmDaily[0].weather[0].id ? 999 : owmDaily[0].weather[0].id.toInteger()), sTRU) + imgT1
 			String tmpImg1= myGetData(sICON) + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1
 			String tmpImg2= myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1
+
 
 			if(threedayTilePublish || myTile2Publish || fcstHighLowPublish) {
 				myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date((Long)owmDaily[1].dt * 1000L).format('EEEE'))
@@ -666,7 +669,7 @@ void pollOWMHandler(resp, data) {
 				alertTile+= '<a href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'OWM.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
 			}else{
 				if(alertSource==sTWO) {
-    				alertTile+= '<a href=https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'NWS_240px.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
+					alertTile+= '<a href=https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon + '" target="_blank">' + sIMGS5 + myGetData(sICON) + 'NWS_240px.png style="height:2em"></a> @ ' + myGetData(sSUMLST)
 				}
 			}
 			myUpdData('alertTile', alertTile)
@@ -721,7 +724,7 @@ void pollWDGHandler(resp, data) {
 		}
 		myUpdData('curAl', wdg?.features[0]?.properties?.event == null ? sNCWA : wdg.features[0].properties.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK))
 		myUpdData('curAlSender', wdg?.features[0]?.properties?.senderName==null ? sNULL : wdg?.features[0]?.properties?.senderName.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK))
-	  	myUpdData('curAlDescr', wdg?.features[0]?.properties?.description==null ? sNULL : wdg?.features[0]?.properties?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024))
+		myUpdData('curAlDescr', wdg?.features[0]?.properties?.description==null ? sNULL : wdg?.features[0]?.properties?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024))
 		Integer alertCnt = 0
 		for(Integer i = 1;i<10;i++) {
 			if(wdg?.features[i]?.properties?.event!=null) {
@@ -761,7 +764,7 @@ void myUpdData(String key, String val){
 	myV= myV!=null ? myV : [:]
 	myV[key]=val
 	dataStoreFLD[mc]=myV
-	removeDataValue(key) // THIS SHOULD BE REMOVED AT SOME POINT
+	//removeDataValue(key) // THIS SHOULD BE REMOVED AT SOME POINT
 }
 
 String myGetData(String key){
@@ -924,27 +927,29 @@ void PostPoll() {
 	String ddisp_p = myGetData('ddisp_p')==sNULL ? '%4.0f' : myGetData('ddisp_p')
 	String ddisp_r = myGetData('ddisp_r')==sNULL ? '%2.0f' : myGetData('ddisp_r')
 	
-	Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
+	if(myGetData('sunRiseSet')!=sNULL) {
+		Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
 /*  SunriseSunset Data Elements */
-	String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
-	String tfmt1=myGetData('timeFormat')
-	if(localSunrisePublish){  // don't bother setting these values if it's not enabled
-	sendEvent(name: tw_begin, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: sunriseTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: noonTime, value: new Date().parse(tfmt, (String)sunRiseSet.solar_noon).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: sunsetTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault()))
-	sendEvent(name: tw_end, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_end).format(tfmt1, TimeZone.getDefault()))
-	}
-	if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
-	sendEvent(name: 'localSunset', value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
-	sendEvent(name: 'localSunrise', value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
+		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
+		String tfmt1=myGetData('timeFormat')
+		if(localSunrisePublish){  // don't bother setting these values if it's not enabled
+			sendEvent(name: tw_begin, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, TimeZone.getDefault()))
+			sendEvent(name: sunriseTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault()))
+			sendEvent(name: noonTime, value: new Date().parse(tfmt, (String)sunRiseSet.solar_noon).format(tfmt1, TimeZone.getDefault()))
+			sendEvent(name: sunsetTime, value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault()))
+			sendEvent(name: tw_end, value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_end).format(tfmt1, TimeZone.getDefault()))
+		}
+		if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
+		sendEvent(name: 'localSunset', value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
+		sendEvent(name: 'localSunrise', value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, TimeZone.getDefault())) // only needed for certain dashboards
+		}
 	}
 
 /*  Capability Data Elements */
 	sendEvent(name: 'humidity', value: myGetData('humidity').toBigDecimal(), unit: '%')
 	sendEvent(name: 'illuminance', value: myGetData('illuminance').toInteger(), unit: 'lx')
 	sendEvent(name: 'pressure', value: myGetData('pressure').toBigDecimal(), unit: myGetData(sPMETR))
-	sendEvent(name: 'pressured', value: String.format(ddisp_p, myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
+	if(dashSharpToolsPublish || dashSmartTilesPublish)sendEvent(name: 'pressured', value: String.format(ddisp_p, myGetData('pressure').toBigDecimal()), unit: myGetData(sPMETR))
 	sendEvent(name: sTEMP, value: myGetData(sTEMP).toBigDecimal(), unit: myGetData(sTMETR))
 	sendEvent(name: 'ultravioletIndex', value: myGetData('ultravioletIndex').toBigDecimal(), unit: 'uvi')
 	sendEvent(name: 'feelsLike', value: myGetData('feelsLike').toBigDecimal(), unit: myGetData(sTMETR))
@@ -1459,15 +1464,28 @@ def estimateLux(Integer condition_id, Integer cloud) {
 	Boolean aFCC = true
 	Double l
 	String bwn
-	Map sunRiseSet				= parseJson(myGetData('sunRiseSet')).results
-	def tZ						= TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
-	String lT		 			= new Date().format('yyyy-MM-dd\'T\'HH:mm:ssXXX', tZ)
-	Long localeMillis	 		= getEpoch(lT)
-	Long twilight_beginMillis 	= getEpoch((String)sunRiseSet.civil_twilight_begin)
-	Long sunriseTimeMillis		= getEpoch((String)sunRiseSet.sunrise)
-	Long noonTimeMillis			= getEpoch((String)sunRiseSet.solar_noon)
-	Long sunsetTimeMillis		= getEpoch((String)sunRiseSet.sunset)
-	Long twilight_endMillis		= getEpoch((String)sunRiseSet.civil_twilight_end)
+	TimeZone tZ						= TimeZone.getDefault() //TimeZone.getTimeZone(tz_id)
+	String lT					= new Date().format('yyyy-MM-dd\'T\'HH:mm:ssXXX', tZ)
+	Long localeMillis			= getEpoch(lT)
+	Long twilight_beginMillis
+	Long sunriseTimeMillis
+	Long noonTimeMillis
+	Long sunsetTimeMillis
+	Long twilight_endMillis
+	if(myGetData('sunRiseSet')!=sNULL) {
+		Map sunRiseSet				= parseJson(myGetData('sunRiseSet')).results
+		twilight_beginMillis	= getEpoch((String)sunRiseSet.civil_twilight_begin)
+		sunriseTimeMillis		= getEpoch((String)sunRiseSet.sunrise)
+		noonTimeMillis			= getEpoch((String)sunRiseSet.solar_noon)
+		sunsetTimeMillis		= getEpoch((String)sunRiseSet.sunset)
+		twilight_endMillis		= getEpoch((String)sunRiseSet.civil_twilight_end)
+	} else {
+		twilight_beginMillis	= ((Date)todaysSunrise).getTime() - (10*60*1000)
+		sunriseTimeMillis	= ((Date)todaysSunrise).getTime()
+		noonTimeMillis		= ((Date)timeToday('12:00',tZ)).getTime()
+		sunsetTimeMillis	= ((Date)todaysSunset).getTime()
+		twilight_endMillis	= ((Date)todaysSunset).getTime() + (10*60*1000)
+	}
 	Long twiStartNextMillis		= twilight_beginMillis + 86400000L // = 24*60*60*1000 --> one day in milliseconds
 	Long sunriseNextMillis		= sunriseTimeMillis + 86400000L
 	Long noonTimeNextMillis		= noonTimeMillis + 86400000L
@@ -1565,7 +1583,7 @@ def estimateLux(Integer condition_id, Integer cloud) {
 	return [lux, bwn]
 }
 
-private Long getEpoch (String aTime) {
+private static Long getEpoch (String aTime) {
 	def tZ = TimeZone.getDefault()
 	Date localeTime = new Date().parse('yyyy-MM-dd\'T\'HH:mm:ssXXX', aTime, tZ)
 	Long localeMillis = localeTime.getTime()
@@ -1620,19 +1638,19 @@ void logCheck(){
 	}
 }
 
-void LOGDEBUG(txt){
+void LOGDEBUG(String txt){
 	if(settings.logSet){ log.debug('OpenWeatherMap.org Weather Driver - DEBUG:  ' + txt) }
 }
 
-void LOGINFO(txt){
+void LOGINFO(String txt){
 	if(settings.logSet){log.info('OpenWeatherMap.org Weather Driver - INFO:  ' + txt) }
 }
 
-void LOGWARN(txt){
+void LOGWARN(String txt){
 	if(settings.logSet){log.warn('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt) }
 }
 
-void LOGERR(txt){
+void LOGERR(String txt){
 	if(settings.logSet){log.error('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt) }
 }
 
@@ -1647,10 +1665,10 @@ void settingsOff(){
 }
 
 void sendEventPublish(evt)	{
-// 	Purpose: Attribute sent to DB if selected
+//	Purpose: Attribute sent to DB if selected
 	if (settings."${evt.name + 'Publish'}") {
 		sendEvent(name: evt.name, value: evt.value, descriptionText: evt.descriptionText, unit: evt.unit, displayed: evt.displayed)
-		LOGINFO('Will publish: ' + evt.name) //: evt.name, evt.value evt.unit'
+		LOGINFO('Will publish: ' + (String)evt.name) //: evt.name, evt.value evt.unit'
 	}
 }
 
