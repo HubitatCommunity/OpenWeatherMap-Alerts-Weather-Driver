@@ -44,7 +44,7 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 05/17/2022
+	Last Update 04/17/2022
 	{ Left room below to document version changes...}
 
 	V0.5.4	04/17/2027	Fallback for Sunrise-Sunset.org failure.
@@ -116,7 +116,7 @@ The way the 'optional' attributes work:
 	attribute you do not want to show.
 */
 //file:noinspection GroovyUnusedAssignment
-static String version()	{  return '0.5.3'  }
+static String version()	{  return '0.5.4'  }
 import groovy.transform.Field
 
 metadata {
