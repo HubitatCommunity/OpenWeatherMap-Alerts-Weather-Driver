@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 08/11/2021
+	Last Update 05/17/2022
 	{ Left room below to document version changes...}
 
+	V0.5.4	04/17/2027	Fallback for Sunrise-Sunset.org failure.
 	V0.5.3	08/11/2021	Exposed cloud coverage forecasts.
 	V0.5.2	01/26/2021	Corrected a display issue on Alerts.
 	V0.5.1	12/12/2020	Changes to dahboard tile logo/hyperlinks when using weather.gov for alerts and there is an alert.
