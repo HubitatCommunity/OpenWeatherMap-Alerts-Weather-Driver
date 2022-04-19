@@ -332,6 +332,8 @@ void sunRiseSetHandler(resp, data) {
 	}else{
 		LOGWARN('Sunrise-Sunset api did not return data.')
 		myUpdData('sunRiseSet', sNULL)
+		myUpdData('localSunset', todaysSunrise.format(myGetData('timeFormat'), TimeZone.getDefault()))
+		myUpdData('localSunrise', todaysSunset.format(myGetData('timeFormat'), TimeZone.getDefault()))
 	}
 }
 // >>>>>>>>>> End Sunrise-Sunset Poll Routines <<<<<<<<<<
