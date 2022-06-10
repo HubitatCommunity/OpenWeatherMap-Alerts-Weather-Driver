@@ -44,10 +44,11 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 04/17/2022
+	Last Update 06/10/2022
 	{ Left room below to document version changes...}
 
-	V0.5.4	04/17/2027	Fallback for Sunrise-Sunset.org failure.
+	V0.5.5	06/10/2022	corrected PoP1 & PoP2 from not displaying when extended precipitation forcast was slected.
+    V0.5.4	04/17/2022	Fallback for Sunrise-Sunset.org failure.
 	V0.5.3	08/11/2021	Exposed cloud coverage forecasts.
 	V0.5.2	01/26/2021	Corrected a display issue on Alerts.
 	V0.5.1	12/12/2020	Changes to dahboard tile logo/hyperlinks when using weather.gov for alerts and there is an alert.
@@ -116,7 +117,7 @@ The way the 'optional' attributes work:
 	attribute you do not want to show.
 */
 //file:noinspection GroovyUnusedAssignment
-static String version()	{  return '0.5.4'  }
+static String version()	{  return '0.5.5'  }
 import groovy.transform.Field
 
 metadata {
@@ -197,6 +198,11 @@ metadata {
 //precipExtended
 		attribute 'rainTomorrow', sNUM
 		attribute 'rainDayAfterTomorrow', sNUM
+        attribute 'Precip0', sNUM
+        attribute 'Precip1', sNUM
+        attribute 'Precip2', sNUM
+        attribute 'PoP1', sNUM
+        attribute 'PoP2', sNUM
 
 //cloudExtended
 		attribute 'cloudToday', sNUM
@@ -1010,6 +1016,8 @@ void PostPoll() {
 	if(precipExtendedPublish){ // don't bother setting these values if it's not enabled
 		sendEvent(name: 'rainTomorrow', value: myGetData('rainTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
 		sendEvent(name: 'rainDayAfterTomorrow', value: myGetData('rainDayAfterTomorrow').toBigDecimal(), unit: myGetData(sRMETR))
+        sendEvent(name: 'PoP1', value: myGetData('PoP1').toInteger())
+        sendEvent(name: 'PoP2', value: myGetData('PoP2').toInteger())
 	}
 	if(cloudExtendedPublish){ // don't bother setting these values if it's not enabled
 		sendEvent(name: 'cloudToday', value: myGetData('cloudToday').toInteger(), unit: '%')
@@ -1336,7 +1344,7 @@ void initialize_poll() {
 			case '5Minutes':
 				mySched = "${dsseconds} ${minutes5}/5 * * * ? *"
 				break
-			case '10Minutes':
+			case '10 Minutes':
 				mySched = "${dsseconds} ${minutes10}/10 * * * ? *"
 				break
 			case '15Minutes':
