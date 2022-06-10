@@ -1833,4 +1833,4 @@ static String padVer(String ver) {
 	return pad
 }
 
-static String getThisCopyright(){'&copy; 2020 Matthew (scottma61) '}
+static String getThisCopyright(){'&copy; 2022 Matthew (scottma61) '}
