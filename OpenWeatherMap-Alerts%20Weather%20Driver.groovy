@@ -44,10 +44,11 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 06/10/2022
+	Last Update 06/11/2022
 	{ Left room below to document version changes...}
 
-	V0.5.5	06/10/2022	corrected PoP1 & PoP2 from not displaying when extended precipitation forcast was slected.
+	V0.5.6	06/11/2022	Corrected 3 day tile icon to honor user's selection of Current or Forecast icon.
+    V0.5.5	06/10/2022	Corrected PoP1 & PoP2 from not displaying when extended precipitation forcast was selected.
     V0.5.4	04/17/2022	Fallback for Sunrise-Sunset.org failure.
 	V0.5.3	08/11/2021	Exposed cloud coverage forecasts.
 	V0.5.2	01/26/2021	Corrected a display issue on Alerts.
@@ -117,7 +118,7 @@ The way the 'optional' attributes work:
 	attribute you do not want to show.
 */
 //file:noinspection GroovyUnusedAssignment
-static String version()	{  return '0.5.5'  }
+static String version()	{  return '0.5.6'  }
 import groovy.transform.Field
 
 metadata {
@@ -561,7 +562,8 @@ void pollOWMHandler(resp, data) {
 
 		String imgT1=(myGetData(sICON).toLowerCase().contains('://github.com/') && myGetData(sICON).toLowerCase().contains('/blob/master/') ? '?raw=true' : sBLK)
 		if(owmDaily && owmDaily[1] && owmDaily[2]) {
-			String tmpImg0= myGetData(sICON) + getImgName((!owmDaily[0].weather[0].id ? 999 : owmDaily[0].weather[0].id.toInteger()), sTRU) + imgT1
+            String tmpImg0= myGetData(sICON) + (myGetData('iconType')== sTRU ? getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) : getImgName(myGetData('forecast_id').toInteger(), myGetData('is_day'))) + imgT1
+//			String tmpImg0= myGetData(sICON) + getImgName((!owmDaily[0].weather[0].id ? 999 : owmDaily[0].weather[0].id.toInteger()), sTRU) + imgT1
 			String tmpImg1= myGetData(sICON) + getImgName((!owmDaily[1].weather[0].id ? 999 : owmDaily[1].weather[0].id.toInteger()), sTRU) + imgT1
 			String tmpImg2= myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1
 
@@ -594,8 +596,7 @@ void pollOWMHandler(resp, data) {
 				myUpdData('forecastEve1', adjTemp(owmDaily[1]?.temp?.eve, isF, mult_twd))
 				myUpdData('forecastNight1', adjTemp(owmDaily[1]?.temp?.night, isF, mult_twd))
 
-				myUpdData('imgName0', sIMGS5 + myGetData(sICON) + getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) + imgT1 + sRB) // For current condition text for 'Today'
-//				myUpdData('imgName0', sIMGS5 + tmpImg0 + sRB) // For daily forecasted condition text for 'Today' 
+				myUpdData('imgName0', sIMGS5 + tmpImg0 + sRB) // For daily forecasted condition text for 'Today' 
 				myUpdData('imgName1', sIMGS5 + tmpImg1 + sRB)
 				myUpdData('imgName2', sIMGS5 + tmpImg2 + sRB)
 			}
@@ -1833,4 +1834,4 @@ static String padVer(String ver) {
 	return pad
 }
 
-static String getThisCopyright(){'&copy; 2022 Matthew (scottma61) '}
+static String getThisCopyright(){'&copy; 2020 Matthew (scottma61) '}
