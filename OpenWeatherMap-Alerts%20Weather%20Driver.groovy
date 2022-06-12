@@ -44,10 +44,11 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 06/11/2022
+	Last Update 06/12/2022
 	{ Left room below to document version changes...}
 
-	V0.5.6	06/11/2022	Corrected 3 day tile icon to honor user's selection of Current or Forecast icon.
+    V0.5.7  06/12/2022  Both MyTile and the Three day Forecast Tile use the Icon and Text selected in the 'Condition Icon/Text for current day on MyTile & Three Day Forecast Tile' option.
+    V0.5.6	06/11/2022	Corrected 3 day tile icon to honor user's selection of Current or Forecast icon.
     V0.5.5	06/10/2022	Corrected PoP1 & PoP2 from not displaying when extended precipitation forcast was selected.
     V0.5.4	04/17/2022	Fallback for Sunrise-Sunset.org failure.
 	V0.5.3	08/11/2021	Exposed cloud coverage forecasts.
@@ -118,7 +119,7 @@ The way the 'optional' attributes work:
 	attribute you do not want to show.
 */
 //file:noinspection GroovyUnusedAssignment
-static String version()	{  return '0.5.6'  }
+static String version()	{  return '0.5.7'  }
 import groovy.transform.Field
 
 metadata {
@@ -233,7 +234,7 @@ metadata {
 			input 'luxjitter', 'bool', title: 'Use lux jitter control (rounding)?', required: true, defaultValue: false
 //	https://tinyurl.com/icnqz/ points to https://raw.githubusercontent.com/HubitatCommunity/WeatherIcons/master/			
 			input 'iconLocation', 'text', required: true, defaultValue: 'https://tinyurl.com/icnqz/', title: 'Alternative Icon Location:'
-			input 'iconType', 'bool', title: 'Condition Icon: On=Current or Off=Forecast', required: true, defaultValue: false
+			input 'iconType', 'bool', title: 'Condition Icon/Text for current day on MyTile & Three Day Forecast Tile: On=Current or Off=Forecast', required: true, defaultValue: false
 			input 'altCoord', 'bool', required: true, defaultValue: false, title: "Override Hub's location coordinates"
 			if (altCoord) {
 				input 'altLat', sSTR, title: 'Override location Latitude', required: true, defaultValue: location.latitude.toString(), description: '<br>Enter location Latitude<br>'
@@ -530,7 +531,6 @@ void pollOWMHandler(resp, data) {
 		List owmCweat = owm?.current?.weather
 		myUpdData('condition_id', owmCweat==null || owmCweat[0]?.id==null ? '999' : owmCweat[0].id.toString())
 		myUpdData('condition_code', getCondCode(myGetData('condition_id').toInteger(), myGetData('is_day')))
-		myUpdData('condition_text', owmCweat==null || owmCweat[0]?.description==null ? 'Unknown' : owmCweat[0].description.capitalize())
 		myUpdData('OWN_icon', owmCweat == null || owmCweat[0]?.icon==null ? (myGetData('is_day')==sTRU ? '50d' : '50n') : owmCweat[0].icon)
 
 		List owmDaily = owm?.daily != null && ((List)owm.daily)[0]?.weather != null ? ((List)owm?.daily)[0].weather : null
@@ -538,6 +538,8 @@ void pollOWMHandler(resp, data) {
 		myUpdData('forecast_code', getCondCode(myGetData('forecast_id').toInteger(), sTRU))
 		myUpdData('forecast_text', owmDaily==null || owmDaily[0]?.description==null ? 'Unknown' : owmDaily[0].description.capitalize())
 
+        myUpdData('condition_text', myGetData('iconType')== sTRU ? (owmCweat==null || owmCweat[0]?.description==null ? 'Unknown' : owmCweat[0].description.capitalize()): (owm?.daily==null || owm?.daily[0]?.weather[0]?.description==null ? 'Unknown' : owm?.daily[0]?.weather[0]?.description.capitalize()))
+        
 		owmDaily = owm?.daily != null ? (List)owm.daily : null
 		BigDecimal t_p0 = (owmDaily==null || !owmDaily[0]?.rain ? 0.00 : owmDaily[0].rain.toBigDecimal()) + (owmDaily==null || !owmDaily[0]?.snow ? 0.00 : owmDaily[0].snow.toBigDecimal())
 		myUpdData('rainToday', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
@@ -694,7 +696,7 @@ void pollOWMHandler(resp, data) {
 		// <<<<<<<<<< Begin Icon Processing  >>>>>>>>>>
 		String imgName = (myGetData('iconType')== sTRU ? getImgName(myGetData('condition_id').toInteger(), myGetData('is_day')) : getImgName(myGetData('forecast_id').toInteger(), myGetData('is_day')))
 		sendEventPublish(name: 'condition_icon', value: sIMGS5 + myGetData(sICON) + imgName + imgT1 + sRB)
-		sendEventPublish(name: 'condition_iconWithText', value: sIMGS5 + myGetData(sICON) + imgName + imgT1 + sRB+ sBR + (myGetData('iconType')== sTRU ? myGetData('condition_text') : myGetData('forecast_text')))
+		sendEventPublish(name: 'condition_iconWithText', value: sIMGS5 + myGetData(sICON) + imgName + imgT1 + sRB+ sBR + myGetData('condition_text'))
 		sendEventPublish(name: 'condition_icon_url', value: myGetData(sICON) + imgName + imgT1)
 		myUpdData('condition_icon_url', myGetData(sICON) + imgName + imgT1)
 		sendEventPublish(name: 'condition_icon_only', value: imgName.split('/')[-1].replaceFirst('\\?raw=true',sBLK))
