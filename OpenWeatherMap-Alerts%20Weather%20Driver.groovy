@@ -490,7 +490,7 @@ void pollOWMHandler(resp, data) {
 			w_cardinal = 'NNE'; w_direction = 'North-Northeast'
 		}else if(twb < 56.25) {
 			w_cardinal = 'NE';  w_direction = 'Northeast'
-		}else if(twb < 56.25) {
+		}else if(twb < 78.75) {
 			w_cardinal = 'ENE'; w_direction = 'East-Northeast'
 		}else if(twb < 101.25) {
 			w_cardinal = 'E'; w_direction = 'East'
