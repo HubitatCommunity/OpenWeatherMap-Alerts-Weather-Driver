@@ -345,8 +345,8 @@ void sunRiseSetHandler(resp, data) {
         myUpdData('riseTime', todaysSunrise.format(tfmt1, TimeZone.getDefault()))
 		myUpdData('noonTime', new Date(todaysSunrise.getTime() + ((todaysSunset.getTime() - todaysSunrise.getTime()).intdiv(2))).format(tfmt1, TimeZone.getDefault()))
         myUpdData('setTime', todaysSunset.format(tfmt1, TimeZone.getDefault()))
-        myUpdData('tw_begin', new Date(todaysSunrise.getTime() - (10*60*1000)).format(tfmt1, TimeZone.getDefault()))
-        myUpdData('tw_end', new Date(todaysSunset.getTime() + (10*60*1000)).format(tfmt1, TimeZone.getDefault()))
+        myUpdData('tw_begin', new Date(todaysSunrise.getTime() - (25*60*1000)).format(tfmt1, TimeZone.getDefault())) // 25 minutes before sunrise
+        myUpdData('tw_end', new Date(todaysSunset.getTime() + (25*60*1000)).format(tfmt1, TimeZone.getDefault())) // 25 minutes after sunset
         myUpdData('localSunset', todaysSunset.format(myGetData('timeFormat'), TimeZone.getDefault()))
 		myUpdData('localSunrise', todaysSunrise.format(myGetData('timeFormat'), TimeZone.getDefault()))
 		myUpdData('riseTime1', new Date(todaysSunrise.getTime() - (60*60*24*1000)).format(tfmt1, TimeZone.getDefault()))
@@ -1506,11 +1506,11 @@ def estimateLux(Integer condition_id, Integer cloud) {
 		sunsetTimeMillis		= getEpoch((String)sunRiseSet.sunset)
 		twilight_endMillis		= getEpoch((String)sunRiseSet.civil_twilight_end)
 	} else {
-		twilight_beginMillis	= ((Date)todaysSunrise).getTime() - (10*60*1000)
+		twilight_beginMillis	= ((Date)todaysSunrise).getTime() - (25*60*1000) // 25 minutes before sunrise
 		sunriseTimeMillis	= ((Date)todaysSunrise).getTime()
 		noonTimeMillis		= ((Date)todaysSunrise).getTime() + ((((Date)todaysSunset).getTime() - ((Date)todaysSunrise).getTime()).intdiv(2))
 		sunsetTimeMillis	= ((Date)todaysSunset).getTime()
-		twilight_endMillis	= ((Date)todaysSunset).getTime() + (10*60*1000)
+		twilight_endMillis	= ((Date)todaysSunset).getTime() + (25*60*1000) // 25 minutes after sunset
 	}
 	Long twiStartNextMillis		= twilight_beginMillis + 86400000L // = 24*60*60*1000 --> one day in milliseconds
 	Long sunriseNextMillis		= sunriseTimeMillis + 86400000L
