@@ -1508,7 +1508,7 @@ def estimateLux(Integer condition_id, Integer cloud) {
 	} else {
 		twilight_beginMillis	= ((Date)todaysSunrise).getTime() - (10*60*1000)
 		sunriseTimeMillis	= ((Date)todaysSunrise).getTime()
-		noonTimeMillis		= ((Date)timeToday('12:00',tZ)).getTime()
+		noonTimeMillis		= ((Date)todaysSunrise).getTime() + ((((Date)todaysSunset).getTime() - ((Date)todaysSunrise).getTime()).intdiv(2))
 		sunsetTimeMillis	= ((Date)todaysSunset).getTime()
 		twilight_endMillis	= ((Date)todaysSunset).getTime() + (10*60*1000)
 	}
