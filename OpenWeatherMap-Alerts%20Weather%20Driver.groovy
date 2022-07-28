@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 07/26/2022
+	Last Update 07/28/2022
 	{ Left room below to document version changes...}
 
+    V0.5.9	07/28/2022	Code clean-up and optimization (Thanks @nh.schottfam).
     V0.5.8	07/26/2022	Fallback to hub location defaults and estimates for Sunrise-Sunset.org failure.
     V0.5.7  06/12/2022  Both MyTile and the Three day Forecast Tile use the Icon and Text selected in the 'Condition Icon/Text for current day on MyTile & Three Day Forecast Tile' option.
     V0.5.6	06/11/2022	Corrected 3 day tile icon to honor user's selection of Current or Forecast icon.
@@ -126,7 +127,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.5.8'  }
+static String version()	{  return '0.5.9'  }
 import groovy.transform.Field
 
 metadata {
