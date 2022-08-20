@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 07/28/2022
+	Last Update 08/20/2022
 	{ Left room below to document version changes...}
 
+    V0.6.0	08/20/2022	More corrections to sunrise/sunset data when when there is a Sunrise-Sunset.org failure.
     V0.5.9	07/28/2022	Code clean-up and optimization (Thanks @nh.schottfam).
     V0.5.8	07/26/2022	Fallback to hub location defaults and estimates for Sunrise-Sunset.org failure.
     V0.5.7  06/12/2022  Both MyTile and the Three day Forecast Tile use the Icon and Text selected in the 'Condition Icon/Text for current day on MyTile & Three Day Forecast Tile' option.
@@ -127,7 +128,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.5.9'  }
+static String version()	{  return '0.6.0'  }
 import groovy.transform.Field
 
 metadata {
@@ -993,11 +994,10 @@ void PostPoll() {
 
 	String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 	String tfmt1=myGetData('timeFormat')
-	if(myGetData('sunRiseSet')!=sNULL) {
+    if(myGetData('sunRiseSet')!=sNULL) {
 		Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
 /*  SunriseSunset Data Elements */
 
-		TimeZone tZ= TimeZone.getDefault()
 		if(localSunrisePublish){  // don't bother setting these values if it's not enabled
 			sendEvent(name: 'tw_begin', value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, tZ))
 			sendEvent(name: 'sunriseTime', value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, tZ))
@@ -1018,7 +1018,31 @@ void PostPoll() {
 			device.deleteCurrentState('localSunset')
 			device.deleteCurrentState('localSunrise')
 		}
-	}
+    }else{
+/*  Sunrise Sunset Data from Hubitat if SunRiseSunRet.org not available */
+
+		if(localSunrisePublish){  // don't bother setting these values if it's not enabled
+			sendEvent(name: 'tw_begin', value: myGetData('tw_begin'))
+			sendEvent(name: 'sunriseTime', value: myGetData('riseTime'))
+			sendEvent(name: 'noonTime', value: myGetData('noonTime'))
+			sendEvent(name: 'sunsetTime', value: myGetData('setTime'))
+			sendEvent(name: 'tw_end', value: myGetData('tw_end'))
+		}else{
+			device.deleteCurrentState('tw_begin')
+			device.deleteCurrentState('sunriseTime')
+			device.deleteCurrentState('noonTime')
+			device.deleteCurrentState('sunsetTime')
+			device.deleteCurrentState('tw_end')
+		}
+		if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
+			sendEvent(name: 'localSunset', value: myGetData('localSunset')) // only needed for certain dashboards
+			sendEvent(name: 'localSunrise', value: myGetData('localSunrise')) // only needed for certain dashboards
+		}else{
+			device.deleteCurrentState('localSunset')
+			device.deleteCurrentState('localSunrise')
+		}
+    
+    }
 
 /*  Capability Data Elements */
 	sendEvent(name: 'humidity', value: myGetDataBD('humidity'), unit: '%')
