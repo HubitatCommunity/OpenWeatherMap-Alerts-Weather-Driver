@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 08/20/2022
+	Last Update 08/22/2022
 	{ Left room below to document version changes...}
 
+    V0.6.1	08/22/2022	Removed the sunrise-sunset.org poll.
     V0.6.0	08/20/2022	More corrections to sunrise/sunset data when when there is a Sunrise-Sunset.org failure.
     V0.5.9	07/28/2022	Code clean-up and optimization (Thanks @nh.schottfam).
     V0.5.8	07/26/2022	Fallback to hub location defaults and estimates for Sunrise-Sunset.org failure.
@@ -128,7 +129,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.0'  }
+static String version()	{  return '0.6.1'  }
 import groovy.transform.Field
 
 metadata {
@@ -315,59 +316,23 @@ metadata {
 void pollSunRiseSet() {
 	if(ifreInstalled()) { updated(); return }
 	String currDate = new Date().format('yyyy-MM-dd', TimeZone.getDefault())
-	LOGINFO('Polling Sunrise-Sunset.org')
-	Map requestParams
-	requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0', timeout: 20 ]
-	if (currDate) {requestParams = [ uri: 'https://api.sunrise-sunset.org/json?lat=' + (String)altLat + '&lng=' + (String)altLon + '&formatted=0&date=' + currDate, timeout: 20 ]}
-	LOGINFO('Poll Sunrise-Sunset: ' + requestParams.toString())
-	asynchttpGet('sunRiseSetHandler', requestParams)
-}
-
-void sunRiseSetHandler(resp, data) {
 	TimeZone tZ= TimeZone.getDefault()
-	if(resp.getStatus() == 200 || resp.getStatus() == 207) {
-		Map sunRiseSet = resp.getJson().results
-		myUpdData('sunRiseSet', resp.data.toString())
-		LOGINFO('Sunrise-Sunset Data: ' + sunRiseSet.toString())
-		if(ifreInstalled()) { updated(); return }
-		if(myGetData('sunRiseSet')==sNULL) {
-			pauseExecution(1000)
-			pollSunRiseSet()
-			return
-		}
-		String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
-		String tfmt1='HH:mm'
-		myUpdData('riseTime', new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, tZ))
-		myUpdData('noonTime', new Date().parse(tfmt, (String)sunRiseSet.solar_noon).format(tfmt1, tZ))
-		myUpdData('setTime', new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, tZ))
-		myUpdData('tw_begin', new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, tZ))
-		myUpdData('tw_end', new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_end).format(tfmt1, tZ))
-		myUpdData('localSunset',new Date().parse(tfmt, (String)sunRiseSet.sunset).format(myGetData('timeFormat'), tZ))
-		myUpdData('localSunrise', new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(myGetData('timeFormat'), tZ))
-		myUpdData('riseTime1', new Date().parse(tfmt, (String)sunRiseSet.sunrise).plus(1).format(tfmt1, tZ))
-		myUpdData('riseTime2', new Date().parse(tfmt, (String)sunRiseSet.sunrise).plus(2).format(tfmt1, tZ))
-		myUpdData('setTime1', new Date().parse(tfmt, (String)sunRiseSet.sunset).plus(1).format(tfmt1, tZ))
-		myUpdData('setTime2', new Date().parse(tfmt, (String)sunRiseSet.sunset).plus(2).format(tfmt1, tZ))
-	}else{
-        LOGWARN('Sunrise-Sunset api did not return data. Using Hub estimates.')
-        String tfmt1='HH:mm'
-		Date tsunrise= todaysSunrise
-		Date tsunset= todaysSunset
-		myUpdData('sunRiseSet', sNULL)
-        myUpdData('riseTime', tsunrise.format(tfmt1, tZ))
-		myUpdData('noonTime', new Date(tsunrise.getTime() + ((tsunset.getTime() - tsunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
-        myUpdData('setTime', tsunset.format(tfmt1, tZ))
-        myUpdData('tw_begin', new Date(tsunrise.getTime() - (25*60*1000)).format(tfmt1, tZ)) // 25 minutes before sunrise
-        myUpdData('tw_end', new Date(tsunset.getTime() + (25*60*1000)).format(tfmt1, tZ)) // 25 minutes after sunset
-        myUpdData('localSunset', tsunset.format(myGetData('timeFormat'), tZ))
-		myUpdData('localSunrise', tsunrise.format(myGetData('timeFormat'), tZ))
-		myUpdData('riseTime1', new Date(tsunrise.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
-		myUpdData('riseTime2', new Date(tsunrise.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
-		myUpdData('setTime1', new Date(tsunset.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
-		myUpdData('setTime2', new Date(tsunset.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
-	}
+    String tfmt1='HH:mm'
+    Date tsunrise= todaysSunrise
+    Date tsunset= todaysSunset
+    myUpdData('riseTime', tsunrise.format(tfmt1, tZ))
+    myUpdData('noonTime', new Date(tsunrise.getTime() + ((tsunset.getTime() - tsunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
+    myUpdData('setTime', tsunset.format(tfmt1, tZ))
+    myUpdData('tw_begin', new Date(tsunrise.getTime() - (25*60*1000)).format(tfmt1, tZ)) // 25 minutes before sunrise
+    myUpdData('tw_end', new Date(tsunset.getTime() + (25*60*1000)).format(tfmt1, tZ)) // 25 minutes after sunset
+    myUpdData('localSunset', tsunset.format(myGetData('timeFormat'), tZ))
+    myUpdData('localSunrise', tsunrise.format(myGetData('timeFormat'), tZ))
+    myUpdData('riseTime1', new Date(tsunrise.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
+    myUpdData('riseTime2', new Date(tsunrise.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
+    myUpdData('setTime1', new Date(tsunset.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
+    myUpdData('setTime2', new Date(tsunset.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
 }
-// >>>>>>>>>> End Sunrise-Sunset Poll Routines <<<<<<<<<<
+// >>>>>>>>>> End Sunrise-Sunset Routines <<<<<<<<<<
 
 // <<<<<<<<<< Begin OWM Poll Routines >>>>>>>>>>
 void pollOWM() {
@@ -994,54 +959,25 @@ void PostPoll() {
 
 	String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 	String tfmt1=myGetData('timeFormat')
-    if(myGetData('sunRiseSet')!=sNULL) {
-		Map sunRiseSet = parseJson(myGetData('sunRiseSet')).results
-/*  SunriseSunset Data Elements */
-
-		if(localSunrisePublish){  // don't bother setting these values if it's not enabled
-			sendEvent(name: 'tw_begin', value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_begin).format(tfmt1, tZ))
-			sendEvent(name: 'sunriseTime', value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, tZ))
-			sendEvent(name: 'noonTime', value: new Date().parse(tfmt, (String)sunRiseSet.solar_noon).format(tfmt1, tZ))
-			sendEvent(name: 'sunsetTime', value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, tZ))
-			sendEvent(name: 'tw_end', value: new Date().parse(tfmt, (String)sunRiseSet.civil_twilight_end).format(tfmt1, tZ))
-		}else{
-			device.deleteCurrentState('tw_begin')
-			device.deleteCurrentState('sunriseTime')
-			device.deleteCurrentState('noonTime')
-			device.deleteCurrentState('sunsetTime')
-			device.deleteCurrentState('tw_end')
-		}
-		if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
-			sendEvent(name: 'localSunset', value: new Date().parse(tfmt, (String)sunRiseSet.sunset).format(tfmt1, tZ)) // only needed for certain dashboards
-			sendEvent(name: 'localSunrise', value: new Date().parse(tfmt, (String)sunRiseSet.sunrise).format(tfmt1, tZ)) // only needed for certain dashboards
-		}else{
-			device.deleteCurrentState('localSunset')
-			device.deleteCurrentState('localSunrise')
-		}
+    if(localSunrisePublish){  // don't bother setting these values if it's not enabled
+        sendEvent(name: 'tw_begin', value: myGetData('tw_begin'))
+        sendEvent(name: 'sunriseTime', value: myGetData('riseTime'))
+        sendEvent(name: 'noonTime', value: myGetData('noonTime'))
+        sendEvent(name: 'sunsetTime', value: myGetData('setTime'))
+        sendEvent(name: 'tw_end', value: myGetData('tw_end'))
     }else{
-/*  Sunrise Sunset Data from Hubitat if SunRiseSunRet.org not available */
-
-		if(localSunrisePublish){  // don't bother setting these values if it's not enabled
-			sendEvent(name: 'tw_begin', value: myGetData('tw_begin'))
-			sendEvent(name: 'sunriseTime', value: myGetData('riseTime'))
-			sendEvent(name: 'noonTime', value: myGetData('noonTime'))
-			sendEvent(name: 'sunsetTime', value: myGetData('setTime'))
-			sendEvent(name: 'tw_end', value: myGetData('tw_end'))
-		}else{
-			device.deleteCurrentState('tw_begin')
-			device.deleteCurrentState('sunriseTime')
-			device.deleteCurrentState('noonTime')
-			device.deleteCurrentState('sunsetTime')
-			device.deleteCurrentState('tw_end')
-		}
-		if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
-			sendEvent(name: 'localSunset', value: myGetData('localSunset')) // only needed for certain dashboards
-			sendEvent(name: 'localSunrise', value: myGetData('localSunrise')) // only needed for certain dashboards
-		}else{
-			device.deleteCurrentState('localSunset')
-			device.deleteCurrentState('localSunrise')
-		}
-    
+        device.deleteCurrentState('tw_begin')
+        device.deleteCurrentState('sunriseTime')
+        device.deleteCurrentState('noonTime')
+        device.deleteCurrentState('sunsetTime')
+        device.deleteCurrentState('tw_end')
+    }
+    if(dashSharpToolsPublish || dashSmartTilesPublish || localSunrisePublish) {
+        sendEvent(name: 'localSunset', value: myGetData('localSunset')) // only needed for certain dashboards
+        sendEvent(name: 'localSunrise', value: myGetData('localSunrise')) // only needed for certain dashboards
+    }else{
+        device.deleteCurrentState('localSunset')
+        device.deleteCurrentState('localSunrise')
     }
 
 /*  Capability Data Elements */
@@ -1660,22 +1596,14 @@ def estimateLux(Integer condition_id, Integer cloud) {
 	Long noonTimeMillis
 	Long sunsetTimeMillis
 	Long twilight_endMillis
-	if(myGetData('sunRiseSet')!=sNULL) {
-		Map sunRiseSet			= parseJson(myGetData('sunRiseSet')).results
-		twilight_beginMillis	= getEpoch((String)sunRiseSet.civil_twilight_begin)
-		sunriseTimeMillis		= getEpoch((String)sunRiseSet.sunrise)
-		noonTimeMillis			= getEpoch((String)sunRiseSet.solar_noon)
-		sunsetTimeMillis		= getEpoch((String)sunRiseSet.sunset)
-		twilight_endMillis		= getEpoch((String)sunRiseSet.civil_twilight_end)
-	} else {
-		Date tsunrise= todaysSunrise
-		Date tsunset= todaysSunset
-		twilight_beginMillis	= tsunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
-		sunriseTimeMillis	= tsunrise.getTime()
-		noonTimeMillis		= tsunrise.getTime() + (tsunset.getTime() - tsunrise.getTime()).intdiv(2)
-		sunsetTimeMillis	= tsunset.getTime()
-		twilight_endMillis	= tsunset.getTime() + 1500000L // (25*60*1000) // 25 minutes after sunset
-	}
+    Date tsunrise= todaysSunrise
+    Date tsunset= todaysSunset
+    twilight_beginMillis	= tsunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
+    sunriseTimeMillis	= tsunrise.getTime()
+    noonTimeMillis		= tsunrise.getTime() + (tsunset.getTime() - tsunrise.getTime()).intdiv(2)
+    sunsetTimeMillis	= tsunset.getTime()
+    twilight_endMillis	= tsunset.getTime() + 1500000L // (25*60*1000) // 25 minutes after sunset
+
 	Long twiStartNextMillis		= twilight_beginMillis + 86400000L // = 24*60*60*1000 --> one day in milliseconds
 	Long sunriseNextMillis		= sunriseTimeMillis + 86400000L
 	Long noonTimeNextMillis		= noonTimeMillis + 86400000L
