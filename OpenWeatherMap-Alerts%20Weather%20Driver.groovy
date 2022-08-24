@@ -47,7 +47,7 @@
 	Last Update 08/23/2022
 	{ Left room below to document version changes...}
 
-    V0.6.2	08/22/2022	Added user selection of 2.5 or 3.5 OWM API Key; Moved Schedule Change notice to Extended Logging.
+    V0.6.2	08/23/2022	Added user selection of 2.5 or 3.5 OWM API Key; Moved Schedule Change notice to Extended Logging.
     V0.6.1	08/22/2022	Removed the sunrise-sunset.org poll.
     V0.6.0	08/20/2022	More corrections to sunrise/sunset data when when there is a Sunrise-Sunset.org failure.
     V0.5.9	07/28/2022	Code clean-up and optimization (Thanks @nh.schottfam).
