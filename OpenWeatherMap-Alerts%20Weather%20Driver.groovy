@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 08/22/2022
+	Last Update 08/23/2022
 	{ Left room below to document version changes...}
 
+    V0.6.2	08/22/2022	Added user selection of 2.5 or 3.5 OWM API Key; Moved Schedule Change notice to Extended Logging.
     V0.6.1	08/22/2022	Removed the sunrise-sunset.org poll.
     V0.6.0	08/20/2022	More corrections to sunrise/sunset data when when there is a Sunrise-Sunset.org failure.
     V0.5.9	07/28/2022	Code clean-up and optimization (Thanks @nh.schottfam).
@@ -129,7 +130,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.1'  }
+static String version()	{  return '0.6.2'  }
 import groovy.transform.Field
 
 metadata {
@@ -228,6 +229,7 @@ metadata {
 		String settingDescr = settingEnable ? '<br><i>Hide many of the optional attributes to reduce the clutter, if needed, by turning OFF this toggle.</i><br>' : '<br><i>Many optional attributes are available to you, if needed, by turning ON this toggle.</i><br>'
 		section('Query Inputs'){
 			input 'apiKey', 'text', required: true, title: 'Type OpenWeatherMap.org API Key Here', defaultValue: null
+            input 'apiVer', 'bool', required: true, title: 'API Key Version (2.5 = OFF;   3.0 = ON)', defaultValue: false
 			input 'city', 'text', required: true, defaultValue: 'City or Location name forecast area', title: 'City name'
 			input 'pollIntervalForecast', 'enum', title: 'External Source Poll Interval (daytime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
 			input 'pollIntervalForecastnight', 'enum', title: 'External Source Poll Interval (nighttime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
@@ -347,7 +349,7 @@ void pollOWM() {
 //	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
 
 	Map ParamsOWM
-	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey, timeout: 20 ]
+	ParamsOWM = [ uri: 'https://api.openweathermap.org/data/' + (apiVer==true ? '3.0' : '2.5') + '/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org: ' + ParamsOWM)
 	asynchttpGet('pollOWMHandler', ParamsOWM)
 }
@@ -355,7 +357,7 @@ void pollOWM() {
 void pollOWMHandler(resp, data) {
 	LOGINFO('Polling OpenWeatherMap.org')
 	if(resp.getStatus() != 200 && resp.getStatus() != 207) {
-		LOGWARN('Calling https://api.openweathermap.org/data/2.5/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey)
+		LOGWARN('Calling https://api.openweathermap.org/data/' + (apiVer==true ? '3.0' : '2.5') + '/onecall?lat=' + (String)altLat + '&lon=' + (String)altLon + '&exclude=minutely,hourly&mode=json&units=imperial&appid=' + (String)apiKey)
 		LOGWARN(resp.getStatus() + sCOLON + resp.getErrorMessage())
 	}else{
 		Map owm = parseJson(resp.data)
@@ -387,9 +389,9 @@ void pollOWMHandler(resp, data) {
 		}
 		if(myGetData('is_light') != myGetData('is_lightOld')) {
 			if(myGetData('is_light')==sTRU) {
-				log.info('OpenWeatherMap.org Weather Driver - INFO: Switching to Daytime schedule.')
+				LOGINFO(' Switching to Daytime schedule.')
 			}else{
-				log.info('OpenWeatherMap.org Weather Driver - INFO: Switching to Nighttime schedule.')
+				LOGINFO(' Switching to Nighttime schedule.')
 			}
 			initialize_poll()
 			myUpdData('is_lightOld', myGetData('is_light'))
@@ -1395,14 +1397,14 @@ void pollOWMl() {
 /*  for testing a different Lat/Lon location uncommnent the two lines below */
 //	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
 //	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
-	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey, timeout: 20 ]
+	Map ParamsOWMl = [ uri: 'https://api.openweathermap.org/data/' + (apiVer==true ? '3.0' : '2.5') + '/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey, timeout: 20 ]
 	LOGINFO('Poll OpenWeatherMap.org Location: ' + ParamsOWMl)
 	asynchttpGet('pollOWMlHandler', ParamsOWMl)
 }
 void pollOWMlHandler(resp, data) {
 	LOGINFO('Polling OpenWeatherMap.org Location')
 	if(resp.getStatus() != 200 && resp.getStatus() != 207) {
-		LOGWARN('Calling https://api.openweathermap.org/data/2.5/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey)
+		LOGWARN('Calling https://api.openweathermap.org/data/' + (apiVer==true ? '3.0' : '2.5') + '/find?lat=' + (String)altLat + '&lon=' + (String)altLon + '&cnt=1&appid=' + (String)apiKey)
 		LOGWARN(resp.getStatus() + sCOLON + resp.getErrorMessage())
 		myUpdData('OWML',sSPC)
 	}else{
