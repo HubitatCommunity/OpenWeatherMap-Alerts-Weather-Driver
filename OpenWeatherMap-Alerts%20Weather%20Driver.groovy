@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 08/23/2022
+	Last Update 01/05/2023
 	{ Left room below to document version changes...}
 
+    V0.6.3	01/05/2023	Bug fix for myTile not showing icon when neither the 'Three day Forecast Tile' nor the 'Forecast High/Low Temperatures' Optional attributes are selected.
     V0.6.2	08/23/2022	Added user selection of 2.5 or 3.5 OWM API Key; Moved Schedule Change notice to Extended Logging.
     V0.6.1	08/22/2022	Removed the sunrise-sunset.org poll.
     V0.6.0	08/20/2022	More corrections to sunrise/sunset data when when there is a Sunrise-Sunset.org failure.
@@ -130,7 +131,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.2'  }
+static String version()	{  return '0.6.3'  }
 import groovy.transform.Field
 
 metadata {
@@ -233,7 +234,7 @@ metadata {
 			input 'city', 'text', required: true, defaultValue: 'City or Location name forecast area', title: 'City name'
 			input 'pollIntervalForecast', 'enum', title: 'External Source Poll Interval (daytime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
 			input 'pollIntervalForecastnight', 'enum', title: 'External Source Poll Interval (nighttime)', required: true, defaultValue: '3 Hours', options: ['Manual Poll Only', '2 Minutes', '5 Minutes', '10 Minutes', '15 Minutes', '30 Minutes', '1 Hour', '3 Hours']
-			input 'logSet', 'bool', title: 'Enable extended Logging', description: '<i>Extended logging will turn off automatically after 30 minutes.</i>', required: true, defaultValue: false
+			input 'txtEnable', 'bool', title: 'Enable Extended Logging', description: '<i>Extended logging will turn off automatically after 30 minutes.</i>', required: true, defaultValue: false
 			input 'alertSource', 'enum', required: true, defaultValue: sONE, title: 'Weather Alert Source<br>0=None 1=OWM or 2=Weather.gov (US only)', options: [0:sZERO, 1:sONE, 2:sTWO]
 			input 'tempFormat', 'enum', required: true, defaultValue: 'Fahrenheit (°F)', title: 'Display Unit - Temperature: Fahrenheit (°F) or Celsius (°C)',  options: ['Fahrenheit (°F)', 'Celsius (°C)']
 			input 'TWDDecimals', 'enum', required: true, defaultValue: sZERO, title: 'Display decimals for Temperature & Wind Speed', options: [0:sZERO, 1:sONE, 2:'2', 3:'3', 4:'4']
@@ -541,7 +542,7 @@ void pollOWMHandler(resp, data) {
 		myUpdData('PoP', (!owmDaily[0].pop ? 0 : Math.round(owmDaily[0].pop.toBigDecimal() * 100.toInteger())).toString())
 		myUpdData('percentPrecip', myGetData('PoP'))
 
-		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTile2Publish)) {
+		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTilePublish)) {
 			BigDecimal t_p1 = (owmDaily==null || !owmDaily[1]?.rain ? 0.00 : owmDaily[1].rain.toBigDecimal()) + (owmDaily==null || !owmDaily[1]?.snow ? 0.00 : owmDaily[1].snow.toBigDecimal())
 			BigDecimal t_p2 = (owmDaily==null || !owmDaily[2]?.rain ? 0.00 : owmDaily[2].rain.toBigDecimal()) + (owmDaily==null || !owmDaily[2]?.snow ? 0.00 : owmDaily[2].snow.toBigDecimal())
 			myUpdData('Precip0', (Math.round((myGetData(sRMETR) == 'in' ? t_p0 * 0.03937008 : t_p0) * mult_r) / mult_r).toString())
@@ -565,7 +566,7 @@ void pollOWMHandler(resp, data) {
 			String tmpImg2= myGetData(sICON) + getImgName((!owmDaily[2].weather[0].id ? 999 : owmDaily[2].weather[0].id.toInteger()), sTRU) + imgT1
 
 
-			if(threedayTilePublish || myTile2Publish || fcstHighLowPublish) {
+			if(threedayTilePublish || myTilePublish || fcstHighLowPublish) {
 				myUpdData('day1', owmDaily[1]?.dt==null ? sBLK : new Date((Long)owmDaily[1].dt * 1000L).format('EEEE'))
 				myUpdData('day2', owmDaily[2]?.dt==null ? sBLK : new Date((Long)owmDaily[2].dt * 1000L).format('EEEE'))
 				myUpdData('is_day1', sTRU)
@@ -1252,6 +1253,7 @@ void buildMyText() {
 		mytext += '<table style="text-align:center;display:inline">'
 		mytext += sTR + '<B>' + myGetData('city') + '</B>'
 		mytext += sTR + myGetData('condition_text') + (noAlert ? sBLK : ' | ') + alertStyleOpen + (noAlert ? sBLK : myGetData('alertLink')) + alertStyleClose
+        LOGINFO("myGetData('imgName0') is " + myGetData('imgName0'))
 		mytext += sTR + String.format(ddisp_twd, myGetDataBD(sTEMP)) + myGetData(sTMETR) + myGetData('imgName0')
 		mytext += 'Feels like ' + String.format(ddisp_twd, myGetDataBD('feelsLike')) + myGetData(sTMETR)
 		mytext += '<tr style="font-size:85%">' + sTD + sIMGS8 + myGetData(sICON) + myGetData('wind_bft_icon') + iconClose + myGetData('wind_direction') + sSPC
@@ -1323,7 +1325,7 @@ void finishSched() {
 	schedule("${ssseconds} 20 0/8 ? * * *", pollSunRiseSet)
 	runIn(5, pollData)
 	if(settingEnable) runIn(2100,settingsOff)// 'roll up' (hide) the condition selectors after 35 min
-	if(settings.logSet) runIn(1800,logsOff)// turns off extended logging after 30 min
+	if(settings.txtEnable) runIn(1800,logsOff)// turns off extended logging after 30 min
 	Integer r_minutes = rand.nextInt(60)
 	schedule("0 ${r_minutes} 8 ? * FRI *", updateCheck)
 }
@@ -1751,7 +1753,7 @@ String getCondCode(Integer cid, String iconTOD){
 }
 
 void logCheck(){
-	if(settings.logSet){
+	if(settings.txtEnable){
 		log.info 'OpenWeatherMap.org Weather Driver - INFO:  All Logging Enabled'
 	}else{
 		log.info 'OpenWeatherMap.org Weather Driver - INFO:  Further Logging Disabled'
@@ -1759,24 +1761,24 @@ void logCheck(){
 }
 
 void LOGDEBUG(String txt){
-	if(settings.logSet){ log.debug('OpenWeatherMap.org Weather Driver - DEBUG:  ' + txt) }
+	if(settings.txtEnable){ log.debug('OpenWeatherMap.org Weather Driver - DEBUG:  ' + txt) }
 }
 
 void LOGINFO(String txt){
-	if(settings.logSet){log.info('OpenWeatherMap.org Weather Driver - INFO:  ' + txt) }
+	if(settings.txtEnable){log.info('OpenWeatherMap.org Weather Driver - INFO:  ' + txt) }
 }
 
 void LOGWARN(String txt){
-	if(settings.logSet){log.warn('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt) }
+	if(settings.txtEnable){log.warn('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt) }
 }
 
 void LOGERR(String txt){
-	if(settings.logSet){log.error('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt) }
+	if(settings.txtEnable){log.error('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt) }
 }
 
 void logsOff(){
 	log.info 'OpenWeatherMap.org Weather Driver - INFO:  extended logging disabled...'
-	device.updateSetting('logSet',[value:sFLS,type:'bool'])
+	device.updateSetting('txtEnable',[value:sFLS,type:'bool'])
 }
 
 void settingsOff(){
@@ -1898,7 +1900,7 @@ void updateCheck()
 
 void updateCheckHandler(resp, data) {
 	state.InternalName = 'OpenWeatherMap-Alerts Weather Driver'
-	Boolean descTextEnable = settings.logSet ?: false
+	Boolean descTextEnable = settings.txtEnable ?: false
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
 		Map respUD = parseJson(resp.data)
 		// log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
