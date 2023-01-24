@@ -47,7 +47,7 @@
 	Last Update 01/23/2023
 	{ Left room below to document version changes...}
 
-    V0.6.4	01/05/2023	Bug fix for wind_cardinal that is creating a "No Data" response w/ 3rd party tile apps.
+    V0.6.4	01/23/2023	Bug fix for wind_cardinal that is creating a "No Data" response w/ 3rd party tile apps.
     V0.6.3	01/05/2023	Bug fix for myTile not showing icon when neither the 'Three day Forecast Tile' nor the 'Forecast High/Low Temperatures' Optional attributes are selected.
     V0.6.2	08/23/2022	Added user selection of 2.5 or 3.5 OWM API Key; Moved Schedule Change notice to Extended Logging.
     V0.6.1	08/22/2022	Removed the sunrise-sunset.org poll.
