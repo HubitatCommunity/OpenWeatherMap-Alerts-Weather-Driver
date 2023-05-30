@@ -1,7 +1,7 @@
 /*
 	OpenWeatherMap-Alerts Weather Driver
 	Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy
-	Copyright 2020 @Matthew (Scottma61)
+	Copyright 2023 @Matthew (Scottma61)
 
 	This driver has morphed many, many times, so the genesis is very blurry now.  It stated as a WeatherUnderground
 	driver, then when they restricted their API it morphed into an APIXU driver.  When APIXU ceased it became a
@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 01/23/2023
+	Last Update 05/30/2023
 	{ Left room below to document version changes...}
 
+    V0.6.5	05/30/2023	Changes to prevent errors and better report in situations where there is no sunrise or sunset.
     V0.6.4	01/23/2023	Bug fix for wind_cardinal that is creating a "No Data" response w/ 3rd party tile apps.
     V0.6.3	01/05/2023	Bug fix for myTile not showing icon when neither the 'Three day Forecast Tile' nor the 'Forecast High/Low Temperatures' Optional attributes are selected.
     V0.6.2	08/23/2022	Added user selection of 2.5 or 3.5 OWM API Key; Moved Schedule Change notice to Extended Logging.
@@ -132,7 +133,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.4'  }
+static String version()	{  return '0.6.5'  }
 import groovy.transform.Field
 
 metadata {
@@ -322,19 +323,27 @@ void pollSunRiseSet() {
 	String currDate = new Date().format('yyyy-MM-dd', TimeZone.getDefault())
 	TimeZone tZ= TimeZone.getDefault()
     String tfmt1='HH:mm'
-    Date tsunrise= todaysSunrise
-    Date tsunset= todaysSunset
-    myUpdData('riseTime', tsunrise.format(tfmt1, tZ))
-    myUpdData('noonTime', new Date(tsunrise.getTime() + ((tsunset.getTime() - tsunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
-    myUpdData('setTime', tsunset.format(tfmt1, tZ))
-    myUpdData('tw_begin', new Date(tsunrise.getTime() - (25*60*1000)).format(tfmt1, tZ)) // 25 minutes before sunrise
-    myUpdData('tw_end', new Date(tsunset.getTime() + (25*60*1000)).format(tfmt1, tZ)) // 25 minutes after sunset
-    myUpdData('localSunset', tsunset.format(myGetData('timeFormat'), tZ))
-    myUpdData('localSunrise', tsunrise.format(myGetData('timeFormat'), tZ))
-    myUpdData('riseTime1', new Date(tsunrise.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
-    myUpdData('riseTime2', new Date(tsunrise.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
-    myUpdData('setTime1', new Date(tsunset.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
-    myUpdData('setTime2', new Date(tsunset.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
+    Date tSunrise, tSunset
+    tSunrise = (!todaysSunrise || todaysSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:00") : todaysSunrise
+    if(altLat.toDouble() >0) {
+        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
+    } else {
+        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
+    }
+    if(!(!todaysSunset || todaysSunset == null)) {
+        tSunset = todaysSunset
+    }         
+    myUpdData('riseTime', tSunrise.format(tfmt1, tZ))
+    myUpdData('noonTime', new Date(tSunrise.getTime() + ((tSunset.getTime() - tSunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
+    myUpdData('setTime', tSunset.format(tfmt1, tZ))
+    myUpdData('tw_begin', new Date(tSunrise.getTime() - (25*60*1000)).format(tfmt1, tZ)) // 25 minutes before sunrise
+    myUpdData('tw_end', new Date(tSunset.getTime() + (25*60*1000)).format(tfmt1, tZ)) // 25 minutes after sunset
+    myUpdData('localSunset', tSunset.format(myGetData('timeFormat'), tZ))
+    myUpdData('localSunrise', tSunrise.format(myGetData('timeFormat'), tZ))
+    myUpdData('riseTime1', new Date(tSunrise.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
+    myUpdData('riseTime2', new Date(tSunrise.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
+    myUpdData('setTime1', new Date(tSunset.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
+    myUpdData('setTime2', new Date(tSunset.getTime() + (60*60*24*1000*2)).format(tfmt1, tZ))
 }
 // >>>>>>>>>> End Sunrise-Sunset Routines <<<<<<<<<<
 
@@ -1601,13 +1610,21 @@ def estimateLux(Integer condition_id, Integer cloud) {
 	Long noonTimeMillis
 	Long sunsetTimeMillis
 	Long twilight_endMillis
-    Date tsunrise= todaysSunrise
-    Date tsunset= todaysSunset
-    twilight_beginMillis	= tsunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
-    sunriseTimeMillis	= tsunrise.getTime()
-    noonTimeMillis		= tsunrise.getTime() + (tsunset.getTime() - tsunrise.getTime()).intdiv(2)
-    sunsetTimeMillis	= tsunset.getTime()
-    twilight_endMillis	= tsunset.getTime() + 1500000L // (25*60*1000) // 25 minutes after sunset
+    Date tSunrise, tSunset
+    tSunrise = (!todaysSunrise || todaysSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:00") : todaysSunrise
+    if(altLat.toDouble() >0) {
+        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
+    } else {
+        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
+    }
+    if(!(!todaysSunset || todaysSunset == null)) {
+        tSunset = todaysSunset
+    } 
+    twilight_beginMillis	= tSunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
+    sunriseTimeMillis	= tSunrise.getTime()
+    noonTimeMillis		= tSunrise.getTime() + (tSunset.getTime() - tSunrise.getTime()).intdiv(2)
+    sunsetTimeMillis	= tSunset.getTime()
+    twilight_endMillis	= tSunset.getTime() + 1500000L // (25*60*1000) // 25 minutes after sunset
 
 	Long twiStartNextMillis		= twilight_beginMillis + 86400000L // = 24*60*60*1000 --> one day in milliseconds
 	Long sunriseNextMillis		= sunriseTimeMillis + 86400000L
@@ -1947,4 +1964,4 @@ static String padVer(String ver) {
 	return pad
 }
 
-static String getThisCopyright(){'&copy; 2020 Matthew (scottma61) '}
+static String getThisCopyright(){'&copy; 2023 Matthew (scottma61) '}
