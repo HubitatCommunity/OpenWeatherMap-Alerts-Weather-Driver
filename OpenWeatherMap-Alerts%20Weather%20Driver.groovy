@@ -320,19 +320,32 @@ metadata {
 // <<<<<<<<<< Begin Sunrise-Sunset Poll Routines >>>>>>>>>>
 void pollSunRiseSet() {
 	if(ifreInstalled()) { updated(); return }
-	String currDate = new Date().format('yyyy-MM-dd', TimeZone.getDefault())
 	TimeZone tZ= TimeZone.getDefault()
+
+	Date dnow= new Date()
+	String currDate = dnow.format('yyyy-MM-dd', tZ)
+
     String tfmt1='HH:mm'
+
     Date tSunrise, tSunset
-    tSunrise = (!todaysSunrise || todaysSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:00") : todaysSunrise
-    if(altLat.toDouble() >0) {
-        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
-    } else {
-        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
+    tSunrise = (Date)todaysSunrise
+    tSunrise = (!tSunrise || tSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 00:00:00") : tSunrise
+
+    tSunset = (Date)todaysSunset
+    if(!tSunset || tSunset == null){
+        String currYear = dnow.format('yyyy', tZ)
+        Date mar21= Date.parse("yyyy-MM-dd", currYear + '-03-21')
+        Date sep21= Date.parse("yyyy-MM-dd", currYear + '-09-21')
+        Boolean isBtwn= (dnow >= mar21 && dnow < sep21)
+        Date twelve59= Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 23:59:59")
+        Date mid01= Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 00:00:01")
+        if(altLat.toDouble() > 0.0D) {
+            tSunset = isBtwn ? twelve59 : mid01
+        } else {
+            tSunset = !isBtwn ? twelve59 : mid01
+        }
     }
-    if(!(!todaysSunset || todaysSunset == null)) {
-        tSunset = todaysSunset
-    }         
+
     myUpdData('riseTime', tSunrise.format(tfmt1, tZ))
     myUpdData('noonTime', new Date(tSunrise.getTime() + ((tSunset.getTime() - tSunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
     myUpdData('setTime', tSunset.format(tfmt1, tZ))
@@ -1347,8 +1360,8 @@ void initMe() {
 	myUpdData('city', city)
 	myUpdData('threedayLH', settings.threedayLH ? sTRU : sFLS)
 	Boolean altCoord = (settings.altCoord ?: false)
-	String valtLat = location.latitude.toString().replace(sSPC, sBLK)
-	String valtLon = location.longitude.toString().replace(sSPC, sBLK)
+	String valtLat; valtLat = location.latitude.toString().replace(sSPC, sBLK)
+	String valtLon; valtLon = location.longitude.toString().replace(sSPC, sBLK)
 	String altLat = settings.altLat ?: valtLat
 	String altLon = settings.altLon ?: valtLon
 	if (altCoord) {
@@ -1610,16 +1623,28 @@ def estimateLux(Integer condition_id, Integer cloud) {
 	Long noonTimeMillis
 	Long sunsetTimeMillis
 	Long twilight_endMillis
-    Date tSunrise, tSunset
-    tSunrise = (!todaysSunrise || todaysSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:00") : todaysSunrise
-    if(altLat.toDouble() >0) {
-        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
-    } else {
-        tSunset = ((!todaysSunset || todaysSunset == null) && (new Date() < Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-03-21')) && (new Date() >= Date.parse("yyyy-MM-dd", new Date().format('yyyy', TimeZone.getDefault()) + '-09-21'))) ? Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 23:59:59") : Date.parse("yyyy-MM-dd hh:mm:ss", new Date().format('yyyy-MM-dd', TimeZone.getDefault()) + " 00:00:01")
-    }
-    if(!(!todaysSunset || todaysSunset == null)) {
-        tSunset = todaysSunset
-    } 
+
+	Date dnow= new Date()
+	String currDate = dnow.format('yyyy-MM-dd', tZ)
+	Date tSunrise, tSunset
+	tSunrise = (Date)todaysSunrise
+	tSunrise = (!tSunrise || tSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 00:00:00") : tSunrise
+
+	tSunset = (Date)todaysSunset
+	if(!tSunset || tSunset == null){
+		String currYear = dnow.format('yyyy', tZ)
+		Date mar21= Date.parse("yyyy-MM-dd", currYear + '-03-21')
+		Date sep21= Date.parse("yyyy-MM-dd", currYear + '-09-21')
+		Boolean isBtwn= (dnow >= mar21 && dnow < sep21)
+		Date twelve59= Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 23:59:59")
+		Date mid01= Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 00:00:01")
+		if(altLat.toDouble() > 0.0D) {
+			tSunset = isBtwn ? twelve59 : mid01
+		} else {
+			tSunset = !isBtwn ? twelve59 : mid01
+		}
+	}
+
     twilight_beginMillis	= tSunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
     sunriseTimeMillis	= tSunrise.getTime()
     noonTimeMillis		= tSunrise.getTime() + (tSunset.getTime() - tSunrise.getTime()).intdiv(2)
