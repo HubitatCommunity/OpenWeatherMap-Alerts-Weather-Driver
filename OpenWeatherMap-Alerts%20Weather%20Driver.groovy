@@ -321,9 +321,11 @@ metadata {
 // <<<<<<<<<< Begin Sunrise-Sunset Poll Routines >>>>>>>>>>
 void pollSunRiseSet() {
 	if(ifreInstalled()) { updated(); return }
+	TimeZone tZ= TimeZone.getDefault()
+    
     Date dnow= new Date()
 	String currDate = dnow.format('yyyy-MM-dd', tZ)
-	TimeZone tZ= TimeZone.getDefault()
+
     String tfmt1='HH:mm'
     tSunrise = (Date)todaysSunrise
     tSunrise = (!tSunrise || tSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 00:00:00") : tSunrise
