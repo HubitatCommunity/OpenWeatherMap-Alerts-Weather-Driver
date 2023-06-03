@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 05/30/2023
+	Last Update 06/03/2023
 	{ Left room below to document version changes...}
 
+    V0.6.6	06/03/2023	Code clean-up & corrections fron @nh.schotthm (Thanks!).
     V0.6.5	05/30/2023	Changes to prevent errors and better report in situations where there is no sunrise or sunset.
     V0.6.4	01/23/2023	Bug fix for wind_cardinal that is creating a "No Data" response w/ 3rd party tile apps.
     V0.6.3	01/05/2023	Bug fix for myTile not showing icon when neither the 'Three day Forecast Tile' nor the 'Forecast High/Low Temperatures' Optional attributes are selected.
@@ -133,7 +134,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.5'  }
+static String version()	{  return '0.6.6'  }
 import groovy.transform.Field
 
 metadata {
@@ -320,14 +321,10 @@ metadata {
 // <<<<<<<<<< Begin Sunrise-Sunset Poll Routines >>>>>>>>>>
 void pollSunRiseSet() {
 	if(ifreInstalled()) { updated(); return }
-	TimeZone tZ= TimeZone.getDefault()
-
-	Date dnow= new Date()
+    Date dnow= new Date()
 	String currDate = dnow.format('yyyy-MM-dd', tZ)
-
+	TimeZone tZ= TimeZone.getDefault()
     String tfmt1='HH:mm'
-
-    Date tSunrise, tSunset
     tSunrise = (Date)todaysSunrise
     tSunrise = (!tSunrise || tSunrise == null) ? Date.parse("yyyy-MM-dd hh:mm:ss", currDate + " 00:00:00") : tSunrise
 
@@ -344,8 +341,7 @@ void pollSunRiseSet() {
         } else {
             tSunset = !isBtwn ? twelve59 : mid01
         }
-    }
-
+    }        
     myUpdData('riseTime', tSunrise.format(tfmt1, tZ))
     myUpdData('noonTime', new Date(tSunrise.getTime() + ((tSunset.getTime() - tSunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
     myUpdData('setTime', tSunset.format(tfmt1, tZ))
@@ -1644,7 +1640,7 @@ def estimateLux(Integer condition_id, Integer cloud) {
 			tSunset = !isBtwn ? twelve59 : mid01
 		}
 	}
-
+    
     twilight_beginMillis	= tSunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
     sunriseTimeMillis	= tSunrise.getTime()
     noonTimeMillis		= tSunrise.getTime() + (tSunset.getTime() - tSunrise.getTime()).intdiv(2)
