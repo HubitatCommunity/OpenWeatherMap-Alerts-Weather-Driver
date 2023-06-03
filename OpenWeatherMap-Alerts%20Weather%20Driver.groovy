@@ -47,7 +47,7 @@
 	Last Update 06/03/2023
 	{ Left room below to document version changes...}
 
-    V0.6.6	06/03/2023	Code clean-up & corrections fron @nh.schotthm (Thanks!).
+    V0.6.6	06/03/2023	Code clean-up & corrections from @nh.schotthm (Thanks!).
     V0.6.5	05/30/2023	Changes to prevent errors and better report in situations where there is no sunrise or sunset.
     V0.6.4	01/23/2023	Bug fix for wind_cardinal that is creating a "No Data" response w/ 3rd party tile apps.
     V0.6.3	01/05/2023	Bug fix for myTile not showing icon when neither the 'Three day Forecast Tile' nor the 'Forecast High/Low Temperatures' Optional attributes are selected.
