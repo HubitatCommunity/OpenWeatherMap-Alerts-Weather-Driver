@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 06/03/2023
+	Last Update 06/21/2023
 	{ Left room below to document version changes...}
 
+    V0.6.7	06/07/2023	Added pull request from @nh.schottfam to display 'City' as a stand-alone optional attribute.
     V0.6.6	06/03/2023	Code clean-up & corrections from @nh.schottfam (Thanks!).
     V0.6.5	05/30/2023	Changes to prevent errors and better report in situations where there is no sunrise or sunset.
     V0.6.4	01/23/2023	Bug fix for wind_cardinal that is creating a "No Data" response w/ 3rd party tile apps.
@@ -134,7 +135,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.6'  }
+static String version()	{  return '0.6.7'  }
 import groovy.transform.Field
 
 metadata {
