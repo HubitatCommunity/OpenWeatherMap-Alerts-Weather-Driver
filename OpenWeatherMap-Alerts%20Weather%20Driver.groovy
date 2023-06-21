@@ -1019,7 +1019,7 @@ void PostPoll() {
 	sendEvent(name: 'feelsLike', value: myGetDataBD('feelsLike'), unit: tmetr)
 
 /*  'Required for Dashboards' Data Elements */
-	if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish) {
+	if(dashHubitatOWMPublish || dashSharpToolsPublish || dashSmartTilesPublish || cityPublish) {
 		sendEvent(name: 'city', value: myGetData('city'))
 	}else{
 		device.deleteCurrentState('city')
@@ -1897,6 +1897,7 @@ void sendEventPublish(evt)	{
 	]
 
 @Field final Map attributesMap = [
+	'city':						[t: 'Display City', d: 'Display City name?', ty: false, defa: sFLS],
 	'threedayTile':				[t: 'Three Day Forecast Tile', d: 'Display Three Day Forecast Tile?', ty: sSTR, defa: sFLS],
 	'alert':					[t: 'Weather Alert', d: 'Display any weather alert?', ty: false, defa: sFLS],
 	'betwixt':					[t: 'Slice of Day', d: 'Display the slice-of-day?', ty: sSTR, defa: sFLS],
