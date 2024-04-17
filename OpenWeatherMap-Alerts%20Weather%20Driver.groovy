@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 08/31/2023
+	Last Update 04/17/2024
 	{ Left room below to document version changes...}
 
+    V0.6.9	04/17/2024	Added moonrise, moonset and moon_phase attributes.
     V0.6.8	08/31/2023	Added pull request from @nh.schottfam to display sun 'altitude' & 'azimuth' as stand-alone optional attributes. Code cleanups.
     V0.6.7	06/07/2023	Added pull request from @nh.schottfam to display 'City' as a stand-alone optional attribute.
     V0.6.6	06/03/2023	Code clean-up & corrections from @nh.schottfam (Thanks!).
@@ -136,7 +137,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.8'  }
+static String version()	{  return '0.6.9'  }
 import groovy.transform.Field
 
 metadata {
@@ -570,6 +571,24 @@ void pollOWMHandler(resp, data) {
 		myUpdData('PoP', (!owmDaily[0].pop ? 0 : Math.round(owmDaily[0].pop.toBigDecimal() * 100.toInteger())).toString())
 		myUpdData('percentPrecip', myGetData('PoP'))
 
+        owmDaily = owm?.daily != null ? (List)owm.daily : null
+        Date moonrise = (owmDaily[0].moonrise==null) ? new Date() : new Date((Long)owmDaily[0].moonrise * 1000L)
+		myUpdData('moonrise', moonrise.toString())
+        Date moonset = (owmDaily[0].moonset==null) ? new Date() : new Date((Long)owmDaily[0].moonset * 1000L)
+		myUpdData('moonset', moonset.toString())
+        String mPhase
+	    BigDecimal tma = !owmDaily[0]?.moon_phase ? 0.00 : owmDaily[0].moon_phase.toBigDecimal()
+	    if (tma >= 0.00 && tma < 0.0625) {mPhase = 'New Moon'}
+	    else if (tma >= 0.0625 && tma < 0.125) {mPhase = 'Waxing Crescent'}
+	    else if (tma >= 0.125 && tma < 0.25) {mPhase = 'First Quarter'}
+	    else if (tma >= 0.25 && tma < 0.375) {mPhase = 'Waxing Gibbous'}
+	    else if (tma >= 0.375 && tma < 0.5) {mPhase = 'Full Moon'}
+	    else if (tma >= 0.5 && tma < 0.625) {mPhase = 'Waning Gibbous'}
+	    else if (tma >= 0.625 && tma < 0.75) {mPhase = 'Last Quarter'}
+	    else if (tma >= 0.075 && tma < 0.875) {mPhase = 'Waxing Gibbous'}
+        else if (tma >= 0.875) {mPhase = 'New Moon'}
+        myUpdData('moon_phase', mPhase)
+        
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTilePublish)) {
 			BigDecimal t_p1 = (owmDaily==null || !owmDaily[1]?.rain ? 0.00 : owmDaily[1].rain.toBigDecimal()) + (owmDaily==null || !owmDaily[1]?.snow ? 0.00 : owmDaily[1].snow.toBigDecimal())
 			BigDecimal t_p2 = (owmDaily==null || !owmDaily[2]?.rain ? 0.00 : owmDaily[2].rain.toBigDecimal()) + (owmDaily==null || !owmDaily[2]?.snow ? 0.00 : owmDaily[2].snow.toBigDecimal())
@@ -1141,6 +1160,10 @@ void PostPoll() {
 		device.deleteCurrentState('azimuth')
 	}
 
+    sendEvent(name: 'moonrise', value: myGetData('moonrise'))
+    sendEvent(name: 'moonset', value: myGetData('moonset'))
+    sendEvent(name: 'moon_phase', value: myGetData('moon_phase'))
+    
 	if(obspollPublish){  // don't bother setting these values if it's not enabled
 		TimeZone tZ= TimeZone.getDefault()
 		sendEvent(name: 'last_poll_Forecast', value: new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('futime')).format(myGetData('dateFormat'), tZ) + ', ' + new Date().parse('EEE MMM dd HH:mm:ss z yyyy', myGetData('futime')).format(tfmt1, tZ))
