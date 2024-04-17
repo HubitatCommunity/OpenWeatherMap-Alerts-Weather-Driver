@@ -174,7 +174,10 @@ metadata {
 		attribute 'wind', sNUM			//SharpTool.io
 		attribute 'windDirection', sNUM	//Hubitat  OpenWeather
 		attribute 'windSpeed', sNUM		//Hubitat  OpenWeather
-
+        attribute 'moonrise', sSTR
+        attribute 'moonset', sSTR
+        attribute 'moon_phase', sSTR
+        
 //	The attributes below are sub-groups of optional attributes.  They need to be listed here to be available
 //alert
 		attribute 'alert', sSTR
