@@ -588,7 +588,7 @@ void pollOWMHandler(resp, data) {
 	    else if (tma >= 0.375 && tma < 0.5) {mPhase = 'Full Moon'}
 	    else if (tma >= 0.5 && tma < 0.625) {mPhase = 'Waning Gibbous'}
 	    else if (tma >= 0.625 && tma < 0.75) {mPhase = 'Last Quarter'}
-	    else if (tma >= 0.075 && tma < 0.875) {mPhase = 'Waxing Gibbous'}
+	    else if (tma >= 0.075 && tma < 0.875) {mPhase = 'Waning Cresent'}
         else if (tma >= 0.875) {mPhase = 'New Moon'}
         myUpdData('moon_phase', mPhase)
         
