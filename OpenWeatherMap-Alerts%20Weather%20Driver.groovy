@@ -44,9 +44,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 04/17/2024
+	Last Update 05/13/2024
 	{ Left room below to document version changes...}
 
+    V0.7.0	05/13/2024	Corrected moon_phase.
     V0.6.9	04/17/2024	Added moonrise, moonset and moon_phase attributes.
     V0.6.8	08/31/2023	Added pull request from @nh.schottfam to display sun 'altitude' & 'azimuth' as stand-alone optional attributes. Code cleanups.
     V0.6.7	06/07/2023	Added pull request from @nh.schottfam to display 'City' as a stand-alone optional attribute.
@@ -137,7 +138,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.6.9'  }
+static String version()	{  return '0.7.0'  }
 import groovy.transform.Field
 
 metadata {
@@ -581,15 +582,15 @@ void pollOWMHandler(resp, data) {
 		myUpdData('moonset', moonset.toString())
         String mPhase
 	    BigDecimal tma = !owmDaily[0]?.moon_phase ? 0.00 : owmDaily[0].moon_phase.toBigDecimal()
-	    if (tma >= 0.00 && tma < 0.0625) {mPhase = 'New Moon'}
-	    else if (tma >= 0.0625 && tma < 0.125) {mPhase = 'Waxing Crescent'}
-	    else if (tma >= 0.125 && tma < 0.25) {mPhase = 'First Quarter'}
-	    else if (tma >= 0.25 && tma < 0.375) {mPhase = 'Waxing Gibbous'}
-	    else if (tma >= 0.375 && tma < 0.5) {mPhase = 'Full Moon'}
-	    else if (tma >= 0.5 && tma < 0.625) {mPhase = 'Waning Gibbous'}
-	    else if (tma >= 0.625 && tma < 0.75) {mPhase = 'Last Quarter'}
-	    else if (tma >= 0.075 && tma < 0.875) {mPhase = 'Waning Cresent'}
-        else if (tma >= 0.875) {mPhase = 'New Moon'}
+	    if (tma < 0.0625) {mPhase = 'New Moon'}
+	    if (tma >= 0.0625 && tma < 0.1875) {mPhase = 'Waxing Crescent'}
+	    if (tma >= 0.1875 && tma < 0.3125) {mPhase = 'First Quarter'}
+	    if (tma >= 0.3125 && tma < 0.4375) {mPhase = 'Waxing Gibbous'}
+	    if (tma >= 0.4375 && tma < 0.5625) {mPhase = 'Full Moon'}
+	    if (tma >= 0.5625 && tma < 0.6875) {mPhase = 'Waning Gibbous'}
+	    if (tma >= 0.6875 && tma < 0.8125) {mPhase = 'Last Quarter'}
+	    if (tma >= 0.8125 && tma < 0.9375) {mPhase = 'Waning Cresent'}
+        if (tma >= 0.9375) {mPhase = 'New Moon'}
         myUpdData('moon_phase', mPhase)
         
 		if(owmDaily && (threedayTilePublish || precipExtendedPublish || myTilePublish)) {
@@ -1858,11 +1859,11 @@ void LOGINFO(String txt){
 }
 
 void LOGWARN(String txt){
-	if(settings.txtEnable){log.warn('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt) }
+	log.warn('OpenWeatherMap.org Weather Driver - WARNING:  ' + txt)
 }
 
 void LOGERR(String txt){
-	if(settings.txtEnable){log.error('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt) }
+	log.error('OpenWeatherMap.org Weather Driver - ERROR:  ' + txt)
 }
 
 void logsOff(){
