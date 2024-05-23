@@ -265,8 +265,8 @@ metadata {
 			input 'iconType', 'bool', title: 'Condition Icon/Text for current day on MyTile & Three Day Forecast Tile: On=Current or Off=Forecast', required: true, defaultValue: false
 			input 'altCoord', 'bool', required: true, defaultValue: false, title: "Override Hub's location coordinates"
 			if (altCoord) {
-				input 'altLat', sSTR, title: 'Override location Latitude', required: true, defaultValue: location.latitude.toString(), description: '<br>Enter location Latitude<br>'
-				input 'altLon', sSTR, title: 'Override location Longitude', required: true, defaultValue: location.longitude.toString(), description: '<br>Enter location Longitude<br>'
+				input 'altLat', sSTR, title: 'Override location Latitude', required: false, defaultValue: location.latitude.toString(), description: '<br>Enter location Latitude<br>'
+				input 'altLon', sSTR, title: 'Override location Longitude', required: false, defaultValue: location.longitude.toString(), description: '<br>Enter location Longitude<br>'
 			}
 			input 'settingEnable', 'bool', title: '<b>Display All Optional Attributes</b>', description: settingDescr, defaultValue: true
 	//build a Selector for each mapped Attribute or group of attributes
