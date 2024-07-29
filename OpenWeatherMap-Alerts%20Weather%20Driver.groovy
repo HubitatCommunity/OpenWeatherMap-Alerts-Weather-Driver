@@ -1,5 +1,9 @@
-/*
-	OpenWeatherMap-Alerts Weather Driver
+// hubitat start
+// hub: 192.168.6.8  <- this is hub's IP address
+// type: device          <- valid values here are "app" and "device"
+// id: 620           <- this is app or driver's id
+// hubitat end
+/*	OpenWeatherMap-Alerts Weather Driver
 	Import URL: https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy
 	Copyright 2023 @Matthew (Scottma61)
 
@@ -44,9 +48,10 @@
 	on an 'AS IS' BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License
 	for the specific language governing permissions and limitations under the License.
 
-	Last Update 05/13/2024
+	Last Update 07/29/2024
 	{ Left room below to document version changes...}
 
+    V0.7.1	07/29/2024	Added attribute 'alertDescrFull' that contain the full text of up to 10 current alerts.
     V0.7.0	05/13/2024	Corrected moon_phase.
     V0.6.9	04/17/2024	Added moonrise, moonset and moon_phase attributes.
     V0.6.8	08/31/2023	Added pull request from @nh.schottfam to display sun 'altitude' & 'azimuth' as stand-alone optional attributes. Code cleanups.
@@ -138,7 +143,7 @@ The way the 'optional' attributes work:
 //file:noinspection GroovyAssignabilityCheck
 //file:noinspection GrDeprecatedAPIUsage
 
-static String version()	{  return '0.7.0'  }
+static String version()	{  return '0.7.1'  }
 import groovy.transform.Field
 
 metadata {
@@ -178,6 +183,7 @@ metadata {
         attribute 'moonrise', sSTR
         attribute 'moonset', sSTR
         attribute 'moon_phase', sSTR
+
         
 //	The attributes below are sub-groups of optional attributes.  They need to be listed here to be available
 //alert
@@ -185,7 +191,8 @@ metadata {
 		attribute 'alertTile', sSTR
 		attribute 'alertDescr', sSTR
 		attribute 'alertSender', sSTR
-
+        attribute 'alertDescrFull', sSTR
+        
 //threedayTile
 		attribute 'threedayfcstTile', sSTR
 
@@ -359,8 +366,8 @@ void pollSunRiseSet() {
 	myUpdData('riseTime', tSunrise.format(tfmt1, tZ))
 	myUpdData('noonTime', new Date(tSunrise.getTime() + ((tSunset.getTime() - tSunrise.getTime()).intdiv(2))).format(tfmt1, tZ))
 	myUpdData('setTime', tSunset.format(tfmt1, tZ))
-	myUpdData('tw_begin', new Date(tSunrise.getTime() - (25*60*1000)).format(tfmt1, tZ)) // 25 minutes before sunrise
-	myUpdData('tw_end', new Date(tSunset.getTime() + (25*60*1000)).format(tfmt1, tZ)) // 25 minutes after sunset
+	myUpdData('tw_begin', new Date(tSunrise.getTime() - 1773000).format(tfmt1, tZ)) // (29.55*60*1000) 29.55 minutes before sunrise
+	myUpdData('tw_end', new Date(tSunset.getTime() + 1773000).format(tfmt1, tZ)) // (29.55*60*1000) 29.55 minutes after sunset
 	myUpdData('localSunset', tSunset.format(myGetData('timeFormat'), tZ))
 	myUpdData('localSunrise', tSunrise.format(myGetData('timeFormat'), tZ))
 	myUpdData('riseTime1', new Date(tSunrise.getTime() + (60*60*24*1000)).format(tfmt1, tZ))
@@ -694,34 +701,33 @@ void pollOWMHandler(resp, data) {
 				clearAlerts()
 			}else{
 				if(alertSource==sONE) {
-					Map owmAlerts0= owm?.alerts ? owm.alerts[0] : null
-					String curAl = owmAlerts0?.event==null ? sNCWA : owmAlerts0.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
-					String curAlSender = owmAlerts0?.sender_name==null ? sNULL : owmAlerts0.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
-					String curAlDescr = owmAlerts0?.description==null ? sNULL : owmAlerts0.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
-					if(curAl==sNCWA) {
+					String curAl = owm?.alerts[0]?.event==null ? sNCWA : owm?.alerts[0]?.event.replaceAll('\n', sSPC).replaceAll('[{}\\[\\]]', sBLK)
+					String curAlSender = owm?.alerts[0]?.sender_name==null ? sNULL : owm?.alerts[0]?.sender_name.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
+					String curAlDescr = owm?.alerts[0]?.description==null ? sNULL : owm?.alerts[0]?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK).take(1024)
+                    String alertDescrFull = owm?.alerts[0]?.description==null ? sNCWA : owm?.alerts[0]?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
+                    if(curAl==sNCWA) {
 						clearAlerts()
 					}else{
 						Integer alertCnt; alertCnt = 0
 						Integer i
 						for(i = 1;i<10;i++) {
 							if(owm?.alerts[i]?.event!=null) {
-								alertCnt++
+                                alertDescrFull = alertDescrFull + owm?.alerts[i]?.description.replaceAll('\n',sSPC).replaceAll('[{}\\[\\]]', sBLK)
+                                alertCnt++
 							}
 						}
-						myUpdData('alertCnt', alertCnt.toString())
+                        myUpdData('alertCnt', alertCnt.toString())
+                        myUpdData('alertDescrFull', alertDescrFull)
+                        LOGINFO('OWM Weather Alert: alertDescrFull Length: ' + myGetData('alertDescrFull').length() + '; Description: ' + myGetData('alertDescrFull'))
 					}
 					myUpdData('alert', curAl + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
 					myUpdData('curAlSender', curAlSender)
 					myUpdData('curAlDescr', curAlDescr)
-					LOGINFO('OWM Weather Alert: ' + curAl + '; Description: ' + curAlDescr.length() + ' ' +curAlDescr)
+					LOGINFO('OWM Weather Alert: curAlDescr Length: '+ curAlDescr.length() + '; Description: ' + curAlDescr)
 					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://openweathermap.org/city/' + myGetData('OWML') + '" target="_blank">'+myGetData('alert')+sACB)
 					myUpdData('alertLink',  '<a style="font-style:italic;color:red">'+myGetData('alert')+sACB)
 				}else{
-/*  for testing a different Lat/Lon location uncommnent the two lines below */
-//	String altLat = "44.809122" //"41.5051613" // "40.6" //"38.627003" //"30.6953657"
-//	String altLon = "-68.735892" //"-81.6934446" // "-75.43" //"-90.199402" //-88.0398912"
 					myUpdData('alert', myGetData('curAl') + (myGetData('alertCnt') != sZERO ? ' +' + myGetData('alertCnt') : sBLK))
-// https://tinyurl.com/zznws points to https://forecast.weather.gov/MapClick.php
 					myUpdData('alertTileLink', '<a style="font-style:italic;color:red" href="https://tinyurl.com/zznws?lat=' + altLat + '&lon=' + altLon +'" target=\'_blank\'>'+myGetData('alert')+sACB)
 					myUpdData('alertLink',  '<a style="font-style:italic;color:red">'+myGetData('alert')+sACB)
 					if(myGetData('curAl')==sNCWA) {
@@ -745,10 +751,10 @@ void pollOWMHandler(resp, data) {
 				}
 			}
 			myUpdData('alertTile', alertTile)
-			sendEvent(name: 'alert', value: myGetData('alert'))
-			sendEvent(name: 'alertDescr', value: myGetData('alertDescr'))
-			sendEvent(name: 'alertSender', value: myGetData('alertSender'))
-			sendEvent(name: 'alertTile', value: myGetData('alertTile'))
+            sendEvent(name: 'alert', value: myGetData('alert'))
+            sendEvent(name: 'alertDescr', value: myGetData('alertDescr'))
+            sendEvent(name: 'alertSender', value: myGetData('alertSender'))
+            sendEvent(name: 'alertTile', value: myGetData('alertTile'))
 			//  >>>>>>>>>> End Built alertTile <<<<<<<<<<
 		}
 // >>>>>>>>>> End Setup Forecast Variables <<<<<<<<<<
@@ -826,6 +832,11 @@ void clearAlerts(){
 	myUpdData('alertTileLink', al3+myGetData('alert')+sACB)
 	myUpdData('alertLink', sAB + myGetData('condition_text') + sACB)
 	myUpdData('possAlert', sFLS)
+    if(alertPublish) {
+        myUpdData('alertDescrFull', sNCWA)
+    }else{
+        device.deleteCurrentState('alertDescrFull')
+    }    
 }
 
 
@@ -1014,6 +1025,12 @@ void PostPoll() {
 	String ddisp_twd = myGetData('ddisp_twd')==sNULL ? '%3.0f' : myGetData('ddisp_twd')
 	String ddisp_p = myGetData('ddisp_p')==sNULL ? '%4.0f' : myGetData('ddisp_p')
 	String ddisp_r = myGetData('ddisp_r')==sNULL ? '%2.0f' : myGetData('ddisp_r')
+
+    if(alertPublish) {
+        sendEvent(name: 'alertDescrFull', value: myGetData('alertDescrFull'))
+    }else{
+        device.deleteCurrentState('alertDescrFull')
+    }
 
 	String tfmt='yyyy-MM-dd\'T\'HH:mm:ssXXX'
 	String tfmt1=myGetData('timeFormat')
@@ -1692,11 +1709,11 @@ def estimateLux(Integer condition_id, Integer cloud) {
 		}
 	}
 
-	twilight_beginMillis	= tSunrise.getTime() - 1500000L // (25*60*1000) // 25 minutes before sunrise
+	twilight_beginMillis	= tSunrise.getTime() - 1773000L // (29.55*60*1000) // 29.55 minutes before sunrise
 	sunriseTimeMillis	= tSunrise.getTime()
 	noonTimeMillis		= tSunrise.getTime() + (tSunset.getTime() - tSunrise.getTime()).intdiv(2)
 	sunsetTimeMillis	= tSunset.getTime()
-	twilight_endMillis	= tSunset.getTime() + 1500000L // (25*60*1000) // 25 minutes after sunset
+	twilight_endMillis	= tSunset.getTime() + 1733000L // (29.55*60*1000) // 29.55 minutes after sunset
 
 	Long twiStartNextMillis		= twilight_beginMillis + 86400000L // = 24*60*60*1000 --> one day in milliseconds
 	Long sunriseNextMillis		= sunriseTimeMillis + 86400000L
@@ -2082,7 +2099,7 @@ void updateCheckHandler(resp, data) {
 	if (resp.getStatus() == 200 || resp.getStatus() == 207) {
 		Map respUD = parseJson(resp.data)
 		// log.warn " Version Checking - Response Data: $respUD"   // Troubleshooting Debug Code - Uncommenting this line should show the JSON response from your webserver
-		state.Copyright = respUD.copyright
+		state.Copyright = getThisCopyright()      
 		// uses reformattted 'version2.json'
 		String Ver = (String)respUD.driver.(state.InternalName).ver
 		String newVer = padVer(Ver)
@@ -2123,5 +2140,4 @@ static String padVer(String ver) {
 	ver.replaceAll( '[vV]', sBLK ).split( /\./ ).each { String it -> pad += it.padLeft( 2, sZERO ) }
 	return pad
 }
-
-static String getThisCopyright(){'&copy; 2023 Matthew (scottma61) '}
+static String getThisCopyright(){'&copy; 2020-' + new Date().format("yyyy") + ' Matthew (scottma61) '}
