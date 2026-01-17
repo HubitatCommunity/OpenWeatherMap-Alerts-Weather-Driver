@@ -51,7 +51,7 @@
 	Last Update 01/17/2026
 	{ Left room below to document version changes...}
 
-    V0.7.2	07/29/2024	Replaced small icons with unicode charactersin dashboard tiles.
+    V0.7.2	01/17/2026	Replaced small icons with unicode charactersin dashboard tiles.
 	V0.7.1	07/29/2024	Added attribute 'alertDescrFull' that contain the full text of up to 10 current alerts.
     V0.7.0	05/13/2024	Corrected moon_phase.
     V0.6.9	04/17/2024	Added moonrise, moonset and moon_phase attributes.
