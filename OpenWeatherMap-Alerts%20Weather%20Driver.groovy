@@ -149,7 +149,7 @@ static String version()	{  return '0.7.3'  }
 import groovy.transform.Field
 
 metadata {
-	definition (name: 'OpenWeatherMap-Alerts Weather Driver',
+	definition (name: 'OpenWeatherMap-Alerts Weather Driver-DEPRECATED',
 		namespace: 'Matthew',
 		author: 'Scottma61',
 		importUrl: 'https://raw.githubusercontent.com/HubitatCommunity/OpenWeatherMap-Alerts-Weather-Driver/master/OpenWeatherMap-Alerts%2520Weather%2520Driver.groovy') {
